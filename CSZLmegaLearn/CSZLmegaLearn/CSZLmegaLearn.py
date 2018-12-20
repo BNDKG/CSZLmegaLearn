@@ -4,6 +4,8 @@ import tushare as ts
 import pandas as pd
 import numpy as np
 import os
+import random
+import copy
 
 #正则表达式
 import re
@@ -13,6 +15,7 @@ import random
 
 #自写的展示类
 from CSZLmegaDisplay import CSZLmegaDisplay
+
 
 #文件夹总路径
 cwd = os.getcwd()
@@ -44,29 +47,57 @@ def CSZL_History_Read():
     z=All_K_Data.shape[2]    
 
     for ii in  range(z):
+        #获取代码名称在codelist列表中
         codelist=All_K_Data[:,0,0]
+        #生成一个代码长度相等的序列
         rangez=range(All_K_Data.shape[0])
+        #获取某日所有股票的收盘价
         pricelist=All_K_Data[:,3,ii]
+        #获取最高价
+        vollist=All_K_Data[:,2,ii]
+        #如果最高级等于收盘价说明可能有毒放入删除列表
+        dellist=np.where(pricelist==vollist)
 
+        #获取所有股票第二日是收盘价
         pricelist2=All_K_Data[:,3,ii+1]
-        pricelist[pricelist==0]=1
-        pricelist2[pricelist2==0]=1
-        pluslist=(pricelist2-pricelist)/pricelist
-        
-        pluslistindex=np.where(pluslist==0)
 
+        #计算次日涨幅，防止除数是0加了0.1
+        pluslist=(pricelist2-pricelist)/(pricelist+0.1)
+
+        #去除异常值
+        pluslistindex=np.where((-0.11>pluslist) | (0.09<pluslist))
+        #pluslistindex=np.where((-0.1>pluslist) | (0.1<pluslist))
+
+        #合并涨幅代码现价
         out2test=np.vstack((rangez,pluslist))
         out2test=np.vstack((out2test,codelist))
         out2test=np.vstack((out2test,pricelist))
 
-        zzzz3=np.delete(out2test,pluslistindex,1)
+        concetarry=np.append(pluslistindex,dellist)
+        concetarry=np.unique(concetarry)
+
+        #去除刚刚提取的涨幅异常值
+        zzzz3=np.delete(out2test,concetarry,1)
 
         maxlistindex=np.where(zzzz3<0.09)
         zzzz4=np.delete(zzzz3,maxlistindex,1)
 
         zzzz4=zzzz4[:,0:10]
 
-        CSZLmegaDisplay.twodim(zzzz4[0],zzzz4[1],title=All_K_Data[1111,6,ii],x_tick=zzzz4[2],y_tick=zzzz4[3])
+        #CSZLmegaDisplay.twodim(zzzz4[0],zzzz4[1],title=All_K_Data[1111,6,ii],x_tick=zzzz4[2],y_tick=zzzz4[3])
+        #CSZLmegaDisplay.twodim(zzzz3[0],zzzz3[1])
+        pointz=my_EM(zzzz3[1])
+
+        labelarange=np.arange(-0.1,0.1,0.01).tolist()
+        z2=np.abs(labelarange-pointz)
+        z3=np.min(z2)
+        z4=np.where(z2<0.01)
+        labelarange=np.delete(labelarange,z4)
+
+        labelarange=labelarange.tolist()
+        labelarange.append(pointz)
+        labelarange=np.array(labelarange)
+        CSZLmegaDisplay.onedim(zzzz3[1],labelarange,pointz)
 
         #这里暂时拿特定一个数据来作为日期检测的种子,之后会寻找更加合适的方法1328
         if(All_K_Data[(1111,6,ii)]>=startdate and All_K_Data[(1111,6,ii)]<=enddate ):
@@ -119,7 +150,7 @@ def HistoryDataGet(
                     print("\n")
               
                 #temp=str(buff_dr_result['code'][z],"utf-8")
-                temp=str(buff_dr_result['code'][z])
+                temp=str(buff_dr_result['code'][z]).zfill(6)
                 #这里注意是字符串temp转为数字保存到HistoryDataSave中可能会有bug
                 HistoryDataSave[(z,0,0)]=temp
 
@@ -273,15 +304,54 @@ def anafirsttest():
             #先测试图表绘制
             print(z_file)
 
+#EM算法
+SIGMA = 6
+
+EPS = 0.0001
+
+def my_EM(X):
+    k = 1
+    N = len(X)
+    Miu = np.random.rand(k,1)
+    Posterior = np.mat(np.zeros((N,2)))
+    dominator = 0
+    numerator = 0
+    #先求后验概率
+    for iter in range(1000):
+        for i in range(N):
+            dominator = 0
+            for j in range(k):
+                dominator = dominator + np.exp(-1.0/(2.0*SIGMA**2) * (X[i] - Miu[j])**2)
+                #print dominator,-1/(2*SIGMA**2) * (X[i] - Miu[j])**2,2*SIGMA**2,(X[i] - Miu[j])**2
+                #return
+            for j in range(k):
+                numerator = np.exp(-1.0/(2.0*SIGMA**2) * (X[i] - Miu[j])**2)
+                Posterior[i,j] = numerator/dominator			
+        oldMiu = copy.deepcopy(Miu)
+        #最大化	
+        for j in range(k):
+            numerator = 0
+            dominator = 0
+            for i in range(N):
+                numerator = numerator + Posterior[i,j] * X[i]
+                dominator = dominator + Posterior[i,j]
+            Miu[j] = numerator/dominator
+        print ((abs(Miu - oldMiu)).sum())
+
+        if (abs(Miu - oldMiu)).sum() < EPS:
+            print (Miu,iter)
+            break
+    return Miu[0][0]
+
+
+
+
 if __name__ == '__main__':
 
     #adwdd=ts.get_k_data("603999",start="2018-10-10", end="2018-12-08")
 
     #获取历史信息
-    #HistoryDataGet()
-
-
-
+    HistoryDataGet(Datas=10)
 
 
     CSZL_History_Read()
