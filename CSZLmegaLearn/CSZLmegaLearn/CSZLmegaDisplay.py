@@ -18,7 +18,7 @@ class CSZLmegaDisplay(object):
 
     def twodim(x_axis,y_axis,x_label="xlabel",y_label="ylabel ",title="title",x_tick="",y_tick=""):
       
-        plt.scatter(x_axis, y_axis,s=1)
+        plt.scatter(x_axis, y_axis,s=8)
         #plt.xlim(30, 160)
         #plt.ylim(5, 50)
         #plt.axis()
@@ -31,7 +31,9 @@ class CSZLmegaDisplay(object):
             plt.xticks(x_axis,x_tick)
             plt.yticks(y_axis,y_tick)
 
-        plt.pause(2)
+        #plt.pause(2)
+        plt.show()
+
     def onedim(x,xticks,xvalue):
         ax=sns.set(color_codes=True)
         #test_plot=FacetGrid.set(xticks=np.arange(1,4,1))

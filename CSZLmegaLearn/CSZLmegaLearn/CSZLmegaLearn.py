@@ -54,9 +54,11 @@ def CSZL_History_Read():
         #获取某日所有股票的收盘价
         pricelist=All_K_Data[:,3,ii]
         #获取最高价
-        vollist=All_K_Data[:,2,ii]
-        #如果最高级等于收盘价说明可能有毒放入删除列表
-        dellist=np.where(pricelist==vollist)
+        highlist=All_K_Data[:,2,ii]
+        #获取量
+        vollist2=All_K_Data[:,5,ii]
+        #如果最高价等于收盘价说明可能有毒放入删除列表
+        dellist=np.where(pricelist==highlist)
 
         #获取所有股票第二日是收盘价
         pricelist2=All_K_Data[:,3,ii+1]
@@ -64,46 +66,62 @@ def CSZL_History_Read():
         #计算次日涨幅，防止除数是0加了0.1
         pluslist=(pricelist2-pricelist)/(pricelist+0.1)
 
+        #计算当日成交金额
+        vollist=(vollist2*(pricelist/10000))
+
         #去除异常值
-        pluslistindex=np.where((-0.11>pluslist) | (0.09<pluslist))
+        pluslistindex=np.where((-0.11>pluslist) | (0.11<pluslist))
         #pluslistindex=np.where((-0.1>pluslist) | (0.1<pluslist))
 
-        #合并涨幅代码现价
+        #合并涨幅代码现价量
         out2test=np.vstack((rangez,pluslist))
         out2test=np.vstack((out2test,codelist))
         out2test=np.vstack((out2test,pricelist))
+        out2test=np.vstack((out2test,vollist))    
 
+        #合并两个要删的list并去重
         concetarry=np.append(pluslistindex,dellist)
         concetarry=np.unique(concetarry)
 
         #去除刚刚提取的涨幅异常值
         zzzz3=np.delete(out2test,concetarry,1)
+        #按照第一行排序(有第0行)
+        zzzz3=zzzz3.T[np.lexsort(zzzz3[4,None])].T
+        #a.T[np.lexsort(-a[0,None])].T  #按第0行的大小逆序排序
+        #a[np.lexsort(a.T[0,None])]   #按第0列的大小排序
 
-        maxlistindex=np.where(zzzz3<0.09)
-        zzzz4=np.delete(zzzz3,maxlistindex,1)
 
-        zzzz4=zzzz4[:,0:10]
+        #提取涨停的个股
+        #maxlistindex=np.where(zzzz3<0.09)
+        #zzzz4=np.delete(zzzz3,maxlistindex,1)
 
-        #CSZLmegaDisplay.twodim(zzzz4[0],zzzz4[1],title=All_K_Data[1111,6,ii],x_tick=zzzz4[2],y_tick=zzzz4[3])
+        #zzzz4=zzzz4[:,0:10]
+        ssef=range(zzzz3.shape[1])
+
+
+        CSZLmegaDisplay.twodim(ssef,zzzz3[1],title=All_K_Data[1111,6,ii])
         #CSZLmegaDisplay.twodim(zzzz3[0],zzzz3[1])
-        pointz=my_EM(zzzz3[1])
 
-        labelarange=np.arange(-0.1,0.1,0.01).tolist()
-        z2=np.abs(labelarange-pointz)
-        z3=np.min(z2)
-        z4=np.where(z2<0.01)
-        labelarange=np.delete(labelarange,z4)
+        ##em算法计算高斯中值
+        #pointz=my_EM(zzzz3[1])
+        ##设置显示标记
+        #labelarange=np.arange(-0.1,0.1,0.01).tolist()
+        ##去除标记中最接近中值的两个值防止重叠显示
+        #z2=np.abs(labelarange-pointz)
+        #z3=np.min(z2)
+        #z4=np.where(z2<0.01)
+        #labelarange=np.delete(labelarange,z4)
 
-        labelarange=labelarange.tolist()
-        labelarange.append(pointz)
-        labelarange=np.array(labelarange)
-        CSZLmegaDisplay.onedim(zzzz3[1],labelarange,pointz)
+        #labelarange=labelarange.tolist()
+        #labelarange.append(pointz)
+        #labelarange=np.array(labelarange)
+        #CSZLmegaDisplay.onedim(zzzz3[1],labelarange,pointz)
 
         #这里暂时拿特定一个数据来作为日期检测的种子,之后会寻找更加合适的方法1328
         if(All_K_Data[(1111,6,ii)]>=startdate and All_K_Data[(1111,6,ii)]<=enddate ):
             TrainDate.append(All_K_Data[(1,6,ii)])
 
-        CSZLmegaDisplay.clean()
+        #CSZLmegaDisplay.clean()
 
     return TrainDate
 
@@ -351,7 +369,7 @@ if __name__ == '__main__':
     #adwdd=ts.get_k_data("603999",start="2018-10-10", end="2018-12-08")
 
     #获取历史信息
-    HistoryDataGet(Datas=10)
+    #HistoryDataGet(Datas=10)
 
 
     CSZL_History_Read()
