@@ -20,6 +20,17 @@ from CSZLmegaDisplay import CSZLmegaDisplay
 #文件夹总路径
 cwd = os.getcwd()
 
+def Get_AllkData():
+    global All_K_Data    
+    HistoryDataSourcePath =cwd + '\\data\\'+'History_data.npy'
+    All_K_Data=np.load(HistoryDataSourcePath)
+
+def Get_Datebased():
+    global Datebaseddata
+
+    dbPath =cwd + '\\data\\'+'Datebased_data.npy'
+    Datebaseddata=np.load(dbPath)
+
 
 def CSZL_History_Read():
     '''
@@ -32,21 +43,14 @@ def CSZL_History_Read():
 
     TrainDate=[]
 
-
-    #txtFile1 = cwd + '\\data\\'+'ALL_History_data.npy'
-    HistoryDataSourcePath =cwd + '\\data\\'+'History_data.npy'
-    #HistoryDataSourcePath ='D:\CSZLsuper\CSZLsuper\CSZLsuper\data\ALL_History_data.npy'
-    databased='D:\CSZLsuper\CSZLsuper\CSZLsuper\output\ALL_History_data_Datebased'
-
-    All_K_Data=np.load(HistoryDataSourcePath)
-
-
     startdate=20180326
     enddate=20180526
 
     z=All_K_Data.shape[2]    
 
-    for ii in  range(z):
+    for ii in  range(140,z-1,1):
+        
+
         #获取代码名称在codelist列表中
         codelist=All_K_Data[:,0,0]
         #生成一个代码长度相等的序列
@@ -62,9 +66,13 @@ def CSZL_History_Read():
 
         #获取所有股票第二日是收盘价
         pricelist2=All_K_Data[:,3,ii+1]
+        #获取所有股票前一日收盘价
+        pricelist3=All_K_Data[:,3,ii-1]        
 
         #计算次日涨幅，防止除数是0加了0.1
         pluslist=(pricelist2-pricelist)/(pricelist+0.1)
+        #计算当日涨幅
+        pluslisttoday=(pricelist-pricelist3)/(pricelist3+0.1)
 
         #计算当日成交金额
         vollist=(vollist2*(pricelist/10000))
@@ -77,7 +85,9 @@ def CSZL_History_Read():
         out2test=np.vstack((rangez,pluslist))
         out2test=np.vstack((out2test,codelist))
         out2test=np.vstack((out2test,pricelist))
-        out2test=np.vstack((out2test,vollist))    
+        out2test=np.vstack((out2test,vollist))
+        out2test=np.vstack((out2test,pluslisttoday))
+
 
         #合并两个要删的list并去重
         concetarry=np.append(pluslistindex,dellist)
@@ -86,7 +96,7 @@ def CSZL_History_Read():
         #去除刚刚提取的涨幅异常值
         zzzz3=np.delete(out2test,concetarry,1)
         #按照第一行排序(有第0行)
-        zzzz3=zzzz3.T[np.lexsort(zzzz3[4,None])].T
+        zzzz3=zzzz3.T[np.lexsort(zzzz3[3,None])].T
         #a.T[np.lexsort(-a[0,None])].T  #按第0行的大小逆序排序
         #a[np.lexsort(a.T[0,None])]   #按第0列的大小排序
 
@@ -99,7 +109,20 @@ def CSZL_History_Read():
         ssef=range(zzzz3.shape[1])
 
 
-        CSZLmegaDisplay.twodim(ssef,zzzz3[1],title=All_K_Data[1111,6,ii])
+        todaydata=All_K_Data[(12,6,ii)]
+        xxx=todaydata//10000
+        xxx2=todaydata//100-xxx*100
+        xxx3=int(todaydata)%100
+
+        days2=1
+        timeNow = datetime.datetime(int(xxx), int(xxx2), int(xxx3), 12, 0, 0); 
+        DayStart = (timeNow + datetime.timedelta(days = days2)).strftime("%Y%m%d")
+
+        color="blue"
+        if(int(DayStart)!=All_K_Data[(1111,6,ii+1)]):
+            color="red"
+
+        CSZLmegaDisplay.twodim(ssef,zzzz3[5],title=todaydata,colori=color)
         #CSZLmegaDisplay.twodim(zzzz3[0],zzzz3[1])
 
         ##em算法计算高斯中值
@@ -118,12 +141,107 @@ def CSZL_History_Read():
         #CSZLmegaDisplay.onedim(zzzz3[1],labelarange,pointz)
 
         #这里暂时拿特定一个数据来作为日期检测的种子,之后会寻找更加合适的方法1328
-        if(All_K_Data[(1111,6,ii)]>=startdate and All_K_Data[(1111,6,ii)]<=enddate ):
+        if(todaydata>=startdate and todaydata<=enddate ):
             TrainDate.append(All_K_Data[(1,6,ii)])
 
         #CSZLmegaDisplay.clean()
 
     return TrainDate
+
+def CSZL_HistoryDB_Read():
+    '''
+    读取全部历史数据
+
+    '''
+    global Datebaseddata    
+    Get_Datebased()
+
+    z=Datebaseddata.shape[0]    
+
+
+    #CSZLmegaDisplay.twodim(range(z),Datebaseddata[:,0,0])
+
+    for ii in  range(2,z-1,1):
+        #获取代码名称在codelist列表中
+        codelist=Datebaseddata[ii,:,6]
+        #生成一个代码长度相等的序列
+        rangez=range(Datebaseddata.shape[1])
+        #获取某日所有股票的收盘价
+        pricelist=Datebaseddata[ii,:,3]
+        #获取最高价
+        highlist=Datebaseddata[ii,:,2]
+        #获取量
+        vollist2=Datebaseddata[ii,:,5]
+        vollistb=Datebaseddata[ii-1,:,5]
+        #如果最高价等于收盘价说明可能有毒放入删除列表
+        dellist=np.where(pricelist==highlist)
+
+        #获取所有股票第二日收盘价
+        pricelist2=Datebaseddata[ii+1,:,2]
+        #获取所有股票前一日收盘价
+        pricelist3=Datebaseddata[ii-1,:,3]        
+
+        #计算次日涨幅，防止除数是0加了0.1
+        pluslist=(pricelist2-pricelist)/(pricelist+0.1)
+        #计算当日涨幅
+        pluslisttoday=(pricelist-pricelist3)/(pricelist3+0.1)
+
+        #计算当日成交金额
+        vollist=(vollist2*(pricelist/10000))
+        #计算前一日成交金额
+        vollistbefore=(vollistb*(pricelist3/10000))
+        #计算当日成交比昨日成交多的百分比
+        vollistbefore=(vollist/(vollistbefore+1))
+
+        #去除异常值
+        pluslistindex=np.where((-0.11>pluslist) | (0.11<pluslist))
+        #pluslistindex=np.where((-0.1>pluslist) | (0.1<pluslist))
+
+        #合并涨幅代码现价量
+        out2test=np.vstack((rangez,pluslist))
+        out2test=np.vstack((out2test,codelist))
+        out2test=np.vstack((out2test,pricelist))
+        out2test=np.vstack((out2test,vollistbefore))
+        out2test=np.vstack((out2test,pluslisttoday))
+
+        #合并两个要删的list并去重
+        concetarry=np.append(pluslistindex,dellist)
+        concetarry=np.unique(concetarry)
+        #concetarry=np.delete(concetarry,[0])
+
+        #去除刚刚提取的涨幅异常值
+        zzzz3=np.delete(out2test,concetarry,1)
+        #按照第一行排序(有第0行)
+        zzzz3=zzzz3.T[np.lexsort(zzzz3[5,None])].T
+        #a.T[np.lexsort(-a[0,None])].T  #按第0行的大小逆序排序
+        #a[np.lexsort(a.T[0,None])]   #按第0列的大小排序
+
+
+        #提取涨停的个股
+        #maxlistindex=np.where(zzzz3<0.09)
+        #zzzz4=np.delete(zzzz3,maxlistindex,1)
+
+        #zzzz4=zzzz4[:,0:10]
+        ssef=range(zzzz3.shape[1])
+
+
+        todaydata=Datebaseddata[(ii,0,0)]
+        xxx=todaydata//10000
+        xxx2=todaydata//100-xxx*100
+        xxx3=int(todaydata)%100
+
+        days2=1
+        timeNow = datetime.datetime(int(xxx), int(xxx2), int(xxx3), 12, 0, 0); 
+        DayStart = (timeNow + datetime.timedelta(days = days2)).strftime("%Y%m%d")
+
+        color="blue"
+        if(int(DayStart)!=Datebaseddata[(ii+1,0,0)]):
+            color="red"
+
+        CSZLmegaDisplay.twodim(ssef,zzzz3[1],title=todaydata,colori=color)
+
+        pass
+
 
 
 def HistoryDataGet(
@@ -227,12 +345,13 @@ def CSZL_CodelistToDatelist():
     x=All_K_Data.shape[0]    #4000
     y=All_K_Data.shape[1]    #7
     z=All_K_Data.shape[2]    #2000
+    #z=4   #2000
 
     # 日期 代码 信息
-    DateBasedList=np.zeros((z,x,y),dtype=float)
+    DateBasedList=np.zeros((z,x+1,y),dtype=float)
 
 
-    bufflist=ts.get_k_data('000001',start='2010-03-01', end='2018-06-13', index=True) 
+    bufflist=ts.get_k_data('000001',start='2017-03-01', end='2018-12-07', index=True) 
 
     datelist=bufflist.date.tail(z)
 
@@ -252,8 +371,8 @@ def CSZL_CodelistToDatelist():
         for ii in range(x):
             cur_changedata=All_K_Data[ii,6,date_index]
             if(changedate3==cur_changedata):
-                DateBasedList[i,ii,:]=All_K_Data[ii,:,date_index]
-                DateBasedList[i,ii,6]=All_K_Data[ii,0,0]
+                DateBasedList[i,ii+1,:]=All_K_Data[ii,:,date_index]
+                DateBasedList[i,ii+1,6]=All_K_Data[ii,0,0]
                 
             else:
                 
@@ -266,8 +385,8 @@ def CSZL_CodelistToDatelist():
                     date_index=foundindex
                     zzz2=All_K_Data[(ii,6,date_index)]
 
-                    DateBasedList[i,ii,:]=All_K_Data[ii,:,date_index]
-                    DateBasedList[i,ii,6]=All_K_Data[ii,0,0]
+                    DateBasedList[i,ii+1,:]=All_K_Data[ii,:,date_index]
+                    DateBasedList[i,ii+1,6]=All_K_Data[ii,0,0]
                     
                     searchcounter+=1
                 else:
@@ -290,7 +409,10 @@ def CSZL_CodelistToDatelist():
     '''
     cwd = os.getcwd()
 
-    txtFileA = cwd + '\\output\\ALL_History_data_Datebased.npy'
+    txtFileA = cwd + '\\data\\Datebased_data.npy'
+    np.set_printoptions(suppress=True)
+    print(DateBasedList)
+
     np.save(txtFileA, DateBasedList)
 
 
@@ -370,7 +492,10 @@ if __name__ == '__main__':
 
     #获取历史信息
     #HistoryDataGet(Datas=10)
+    #Get_AllkData()
+    #CSZL_CodelistToDatelist()
 
+    CSZL_HistoryDB_Read()
 
     CSZL_History_Read()
 

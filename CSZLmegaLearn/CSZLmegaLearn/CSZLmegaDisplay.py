@@ -16,14 +16,14 @@ class CSZLmegaDisplay(object):
     """description of class"""
 
 
-    def twodim(x_axis,y_axis,x_label="xlabel",y_label="ylabel ",title="title",x_tick="",y_tick=""):
-      
+    def twodim(x_axis,y_axis,x_label="xlabel",y_label="ylabel ",title="title",x_tick="",y_tick="",colori="blue"):
+        plt.figure(figsize=(19, 11))
         plt.scatter(x_axis, y_axis,s=8)
         #plt.xlim(30, 160)
         #plt.ylim(5, 50)
         #plt.axis()
     
-        plt.title(title)
+        plt.title(title,color=colori)
         plt.xlabel("x_label")
         plt.ylabel("y_label")
 
