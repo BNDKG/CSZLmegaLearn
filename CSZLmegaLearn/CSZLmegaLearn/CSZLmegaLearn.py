@@ -483,8 +483,19 @@ def my_EM(X):
             break
     return Miu[0][0]
 
+def Get_Something_Else(Start='2018-01-01',end='2018-12-31'):
 
 
+    #Reverse_Repo逆回购利率
+    a=ts.get_k_data("131810",start=Start, end=end)
+    RRhigh=a['high'].values
+    RRdate=a['date'].values
+    
+    #szcz深圳成指
+    b=ts.get_k_data("131810",start=Start, end=end)
+
+    
+    pass
 
 if __name__ == '__main__':
 
@@ -494,6 +505,9 @@ if __name__ == '__main__':
     #HistoryDataGet(Datas=10)
     #Get_AllkData()
     #CSZL_CodelistToDatelist()
+
+    Get_Reverse_Repo()
+
 
     CSZL_HistoryDB_Read()
 
