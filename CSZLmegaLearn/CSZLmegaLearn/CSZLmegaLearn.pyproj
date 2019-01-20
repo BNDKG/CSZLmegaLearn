@@ -22,6 +22,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="CSZLmegaAlgorithm .py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="CSZLmegaDisplay.py">
       <SubType>Code</SubType>
     </Compile>

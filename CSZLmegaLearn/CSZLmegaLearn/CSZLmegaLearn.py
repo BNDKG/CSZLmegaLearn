@@ -9,6 +9,7 @@ import copy
 
 #正则表达式
 import re
+
 import datetime
 import time
 import random
@@ -444,58 +445,84 @@ def anafirsttest():
             #先测试图表绘制
             print(z_file)
 
-#EM算法
-SIGMA = 6
 
-EPS = 0.0001
-
-def my_EM(X):
-    k = 1
-    N = len(X)
-    Miu = np.random.rand(k,1)
-    Posterior = np.mat(np.zeros((N,2)))
-    dominator = 0
-    numerator = 0
-    #先求后验概率
-    for iter in range(1000):
-        for i in range(N):
-            dominator = 0
-            for j in range(k):
-                dominator = dominator + np.exp(-1.0/(2.0*SIGMA**2) * (X[i] - Miu[j])**2)
-                #print dominator,-1/(2*SIGMA**2) * (X[i] - Miu[j])**2,2*SIGMA**2,(X[i] - Miu[j])**2
-                #return
-            for j in range(k):
-                numerator = np.exp(-1.0/(2.0*SIGMA**2) * (X[i] - Miu[j])**2)
-                Posterior[i,j] = numerator/dominator			
-        oldMiu = copy.deepcopy(Miu)
-        #最大化	
-        for j in range(k):
-            numerator = 0
-            dominator = 0
-            for i in range(N):
-                numerator = numerator + Posterior[i,j] * X[i]
-                dominator = dominator + Posterior[i,j]
-            Miu[j] = numerator/dominator
-        print ((abs(Miu - oldMiu)).sum())
-
-        if (abs(Miu - oldMiu)).sum() < EPS:
-            print (Miu,iter)
-            break
-    return Miu[0][0]
 
 def Get_Something_Else(Start='2018-01-01',end='2018-12-31'):
 
+    global Global_train_data
+
+    #szcz深圳成指(以此的date为key)
+    b=ts.get_k_data("399001",start=Start, end=end)
+    RRhigh2=b['date'].values
+    Data_Merge(RRhigh2)
+    RRhigh2=b['high'].values
+    Data_Merge(RRhigh2)
 
     #Reverse_Repo逆回购利率
     a=ts.get_k_data("131810",start=Start, end=end)
-    RRhigh=a['high'].values
-    RRdate=a['date'].values
-    
-    #szcz深圳成指
-    b=ts.get_k_data("131810",start=Start, end=end)
 
-    
+    RRdate=a['date'].values
+    Data_Merge(RRdate)
+    RRhigh=a['high'].values
+    Data_Merge(RRhigh)
+
+    print(Global_train_data)
     pass
+
+#先用全局变量应付一下，todo使用class封装起来
+Global_train_data=[]
+
+miss_index=[]
+def Data_Merge(column):
+    '''
+    判断行数一样直接加行数不一样加成一样再加
+    '''
+
+    global miss_index
+
+    if(len(Global_train_data)==len(column)or len(Global_train_data)==0):
+        sef=column
+    else:
+        if(len(miss_index)==0):
+            asdw=Global_train_data.T
+            asdw2=asdw[0]
+            ii=0
+            fesef=[]
+            for date in asdw2:
+                if(date!=column[ii]):
+                    fesef.append(ii)
+                else:
+                    ii+=1
+            miss_index=fesef
+            return
+        else:
+            sef=column
+            for empty_index in reversed(miss_index):           
+
+                sef=np.insert(sef,empty_index,-1,axis=0)
+            miss_index=[]
+
+    xx2=np.array(sef.T)
+    xx2=xx2.reshape([xx2.shape[0],1])    
+    _Data_Merge(xx2)
+
+    pass
+
+def _Data_Merge(column):
+    '''
+    将输入的列合并到总的列中,数量不相等返回错误
+    '''
+    global Global_train_data
+    if(len(Global_train_data)):
+        Global_train_data=np.hstack((Global_train_data, column))
+        
+        pass
+    else:
+        Global_train_data=column
+        pass
+
+
+
 
 if __name__ == '__main__':
 
@@ -506,7 +533,7 @@ if __name__ == '__main__':
     #Get_AllkData()
     #CSZL_CodelistToDatelist()
 
-    Get_Reverse_Repo()
+    Get_Something_Else()
 
 
     CSZL_HistoryDB_Read()
