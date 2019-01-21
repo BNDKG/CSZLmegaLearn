@@ -447,24 +447,36 @@ def anafirsttest():
 
 
 
-def Get_Something_Else(Start='2018-01-01',end='2018-12-31'):
+def Get_DateBased_Feature(Start='2018-01-01',end='2018-12-31'):
 
     global Global_train_data
+    #date(日期/主键) 
 
     #szcz深圳成指(以此的date为key)
     b=ts.get_k_data("399001",start=Start, end=end)
-    RRhigh2=b['date'].values
-    Data_Merge(RRhigh2)
-    RRhigh2=b['high'].values
-    Data_Merge(RRhigh2)
+    #主键
+    xx=b['date'].values
+    Data_Merge(xx)
+    #收盘价
+    xx=b['close'].values
+    Data_Merge(xx)
+
+    #cybz创业板指
+    b=ts.get_k_data("399006",start=Start, end=end)
+
+    #收盘价
+    xx=b['close'].values
+    Data_Merge(xx)
+
 
     #Reverse_Repo逆回购利率
     a=ts.get_k_data("131810",start=Start, end=end)
 
-    RRdate=a['date'].values
-    Data_Merge(RRdate)
-    RRhigh=a['high'].values
-    Data_Merge(RRhigh)
+    #先传入一个日期的key，来填补缺失数据
+    xx=a['date'].values
+    Data_Merge(xx)
+    xx=a['high'].values
+    Data_Merge(xx)
 
     print(Global_train_data)
     pass
@@ -533,7 +545,7 @@ if __name__ == '__main__':
     #Get_AllkData()
     #CSZL_CodelistToDatelist()
 
-    Get_Something_Else()
+    Get_DateBased_Feature()
 
 
     CSZL_HistoryDB_Read()
