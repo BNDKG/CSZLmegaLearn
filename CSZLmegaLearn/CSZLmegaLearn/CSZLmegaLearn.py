@@ -1,11 +1,13 @@
 #coding=utf-8
 
-import tushare as ts
+
 import pandas as pd
 import numpy as np
 import os
 import random
 import copy
+
+import tushare as ts
 
 #正则表达式
 import re
@@ -447,7 +449,7 @@ def anafirsttest():
 
 
 
-def Get_DateBased_Feature(Start='2018-01-01',end='2018-12-31'):
+def Get_DateBased_Feature(Start='2015-01-01',end='2018-12-31'):
 
     global Global_train_data
     #date(日期/主键) 
@@ -460,12 +462,25 @@ def Get_DateBased_Feature(Start='2018-01-01',end='2018-12-31'):
     #收盘价
     xx=b['close'].values
     Data_Merge(xx)
+    #成交量
+    xx=b['volume'].values
+    Data_Merge(xx)
 
-    #cybz创业板指
+    #cybz创业板指 159915这类基金也可以获取但一些指数不能获取
     b=ts.get_k_data("399006",start=Start, end=end)
 
     #收盘价
     xx=b['close'].values
+    Data_Merge(xx)
+    #成交量
+    xx=b['volume'].values
+    Data_Merge(xx)
+
+    #收盘价
+    xx=b['close'].values
+    Data_Merge(xx)
+    #成交量
+    xx=b['volume'].values
     Data_Merge(xx)
 
 
@@ -533,7 +548,177 @@ def _Data_Merge(column):
         Global_train_data=column
         pass
 
+def get_codeanddate_feature():
 
+    #mydict={'id':["000002.SZ","000004.SZ","000005.SZ"],'fea':["dwdw","dwd","www"]}
+    #test_dict_df = pd.DataFrame(mydict)
+    #test_dict_df.set_index('id',inplace=True)
+
+    #print(test_dict_df)
+
+    #读取token
+    f = open('token.txt')
+    token = f.read()     #将txt文件的所有内容读入到字符串str中
+    f.close()
+
+
+    pro = ts.pro_api(token)
+
+    date=pro.query('trade_cal', start_date='20180102', end_date='20181230')
+
+    date=date[date["is_open"]==1]
+    get_list=date["cal_date"]
+
+    df_all=pro.daily(trade_date="20180101")
+
+    zcounter=0
+    zall=get_list.shape[0]
+    for singledate in get_list:
+        zcounter+=1
+        print(zcounter*100/zall)
+
+        dec=5
+        while(dec>0):
+            try:
+                time.sleep(1)
+                df = pro.daily(trade_date=singledate)
+
+                df_all=pd.concat([df_all,df])
+
+                #df_last
+                #print(df_all)
+                break
+
+            except Exception as e:
+                dec-=1
+                time.sleep(5-dec)
+
+        if(dec==0):
+            fsefe=1
+
+
+    df_all=df_all.reset_index(drop=True)
+
+    df_all.to_csv("savetest.csv")
+
+
+
+
+
+    #df = pro.query('adj_factor',  trade_date='20180315')
+
+    #df = pro.shibor(start_date='20100101', end_date='20101101')
+
+    df[["change","pct_chg"]]=df[["change","pct_chg"]].apply(pd.to_numeric, errors='coerce')
+
+    print(df[df["pct_chg"]>9])
+
+    #df2 = pd.to_numeric(df2.pct_chg, errors='coerce' )
+
+    print(df2)
+
+    #获取基本数据
+    data = pro.query('stock_basic', exchange='', list_status='L', fields='ts_code,symbol,market,name,area,industry,list_date')
+
+    data.set_index('ts_code',inplace=True)
+
+    df = pro.query('daily_basic', ts_code='', trade_date='20190307',fields='ts_code,trade_date,turnover_rate,turnover_rate_f,volume_ratio,pe,pb,ps,total_share,float_share,free_share,total_mv,circ_mv,close')
+
+    df.set_index('ts_code',inplace=True)
+
+    mix=pd.merge(data, df, how='outer', on=None,  
+
+            left_index=True, right_index=True, sort=False,  
+
+            suffixes=('_x', '_y'), copy=True, indicator=False)
+
+
+    print(mix)
+
+
+
+
+    data.to_csv("zmc.csv")
+
+
+    sdads=1
+
+
+dtypes = {
+        'open':                                     'float16',
+        'high':                                'float16',
+        'low':                                      'float16',
+        'close':                                 'float16',
+        'pre_close':                               'float16',
+        'change':                                     'float16',
+        'pct_chg':                                     'float16',
+        'vol':                                                  'float32',
+        'amount':                                               'float32'
+        }
+
+def feature_env_codeanddate():
+
+    df_all=pd.read_csv("savetest.csv",index_col=0,header=0)
+    
+    #df[["open","high","low" ,"close" ,"pre_close" ,"change","pct_chg","vol","amount"]]=df[["change","pct_chg"]].apply(pd.to_numeric, errors='coerce')
+
+    df_all["newtest"]=0
+
+    for cur_ts_code,group in df_all.groupby('ts_code'):
+
+        print(cur_ts_code)
+
+        starter=0
+        last_pct=0
+        cur_pct=0
+
+        for x in range(len(group.index)):
+            last2_pct=last_pct
+            last_pct=cur_pct
+            cur_pct=group["pct_chg"].iloc[x]
+
+            group["newtest"].iloc[x]=last_pct
+
+
+        #print(group)
+
+        fed=1
+
+    
+    #grouped=df_all.groupby(['ts_code'])
+
+    #print(grouped)
+
+    print(df_all)
+
+    df_all.to_csv("zzztest.csv")
+    dwdw=1
+    
+
+def get_date_feature():
+
+    #获取基于日期的特征
+
+    #读取token
+    f = open('token.txt')
+    token = f.read()     #将txt文件的所有内容读入到字符串str中
+    f.close()
+
+
+    pro = ts.pro_api(token)
+
+
+def get_code_feature():
+
+    #获取基于代码的特征
+
+    #读取token
+    f = open('token.txt')
+    token = f.read()     #将txt文件的所有内容读入到字符串str中
+    f.close()
+
+
+    pro = ts.pro_api(token)
 
 
 if __name__ == '__main__':
@@ -544,6 +729,14 @@ if __name__ == '__main__':
     #HistoryDataGet(Datas=10)
     #Get_AllkData()
     #CSZL_CodelistToDatelist()
+
+    feature_env_codeanddate()
+
+    #get_codeanddate_feature()
+
+
+    #pro.trade_cal(exchange='', start_date='20180101', end_date='20181231')
+    #df = pro.fina_mainbz(ts_code='000627.SZ', period='20171231', type='P')
 
     Get_DateBased_Feature()
 

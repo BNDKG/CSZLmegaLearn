@@ -331,3 +331,5 @@ ASALocalRun/
 /CSZLmegaLearn/CSZLmegaLearn/data/History_data.npy
 /CSZLmegaLearn/CSZLmegaLearn/data/History_data2.npy
 /CSZLmegaLearn/CSZLmegaLearn/data/Datebased_data.npy
+/CSZLmegaLearn/CSZLmegaLearn/token.txt
+*.csv
