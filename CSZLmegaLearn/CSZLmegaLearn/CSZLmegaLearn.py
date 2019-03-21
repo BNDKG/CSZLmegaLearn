@@ -668,19 +668,40 @@ def feature_env_codeanddate():
 
         print(cur_ts_code)
 
-        starter=0
-        last_pct=0
-        cur_pct=0
 
-        for x in range(len(group.index)):
-            last2_pct=last_pct
-            last_pct=cur_pct
-            cur_pct=group["pct_chg"].iloc[x]
 
-            group["newtest"].iloc[x]=last_pct
+        bufferlist=group["pct_chg"].reset_index(drop=True)
+        bufferlist2=bufferlist
+
+        bufferlist=bufferlist.drop(index=[0])
+
+        dropindex=bufferlist2.shape[0]
+        bufferlist2=bufferlist2.drop(index=[dropindex-1,])
+        plusrow=bufferlist[:0]
+        plusrow["pct_chg"]=0
+
+        bufferlist=plusrow.append(bufferlist,ignore_index=True)
+        bufferlist2=bufferlist2.append(plusrow,ignore_index=True)
+
+        df_all[df_all['ts_code']==cur_ts_code]['newtest']=1
+        #group["newtest"]=bufferlist
+
+        #print(bufferlist)
+        #print(bufferlist2)
+
+        #starter=0
+        #last_pct=0
+        #cur_pct=0
+        #for x in range(len(group.index)):
+        #    last2_pct=last_pct
+        #    last_pct=cur_pct
+        #    cur_pct=group["pct_chg"].iloc[x]
+
+        #    group["newtest"].iloc[x]=last_pct
 
 
         #print(group)
+        print(df_all)
 
         fed=1
 
