@@ -9,6 +9,10 @@ import copy
 
 import tushare as ts
 
+import lightgbm as lgb
+from sklearn import datasets
+from sklearn.model_selection import StratifiedKFold
+
 #正则表达式
 import re
 
@@ -18,6 +22,8 @@ import random
 
 #自写的展示类
 from CSZLmegaDisplay import CSZLmegaDisplay
+import gc
+from sklearn.externals import joblib
 
 
 #文件夹总路径
@@ -662,28 +668,58 @@ def feature_env_codeanddate():
     
     #df[["open","high","low" ,"close" ,"pre_close" ,"change","pct_chg","vol","amount"]]=df[["change","pct_chg"]].apply(pd.to_numeric, errors='coerce')
 
-    df_all["newtest"]=0
+    #df_all["newtest"]=0
+
+    df_empty = pd.DataFrame(columns=['yesterday', 'tomorrow'])
+
+    counter=0
 
     for cur_ts_code,group in df_all.groupby('ts_code'):
 
         print(cur_ts_code)
 
 
+        #获得数据
+        yesterday_chg=group["pct_chg"].reset_index(drop=True)
+        tomorrow_chg=yesterday_chg
 
-        bufferlist=group["pct_chg"].reset_index(drop=True)
-        bufferlist2=bufferlist
+        #删除昨日最后一行
+        dropindex=tomorrow_chg.shape[0]
+        yesterday_chg=yesterday_chg.drop([dropindex-1,])
 
-        bufferlist=bufferlist.drop(index=[0])
+        #删除明日第一行
+        tomorrow_chg=tomorrow_chg.drop([0])
 
-        dropindex=bufferlist2.shape[0]
-        bufferlist2=bufferlist2.drop(index=[dropindex-1,])
-        plusrow=bufferlist[:0]
+        #新建空的一行
+        plusrow=yesterday_chg[:0]
         plusrow["pct_chg"]=0
 
-        bufferlist=plusrow.append(bufferlist,ignore_index=True)
-        bufferlist2=bufferlist2.append(plusrow,ignore_index=True)
+        #第一行为0，将删除最后一行的昨日添加到0后面，同时清空index
+        yesterday_chg=plusrow.append(yesterday_chg,ignore_index=True)
+        #将0添加到明日的最后一行，同时清空index
+        tomorrow_chg=tomorrow_chg.append(plusrow,ignore_index=True)
 
-        df_all[df_all['ts_code']==cur_ts_code]['newtest']=1
+        #取得正确index的group数据，并且把index保存成一列数据列，同时自身index变为从0开始的顺序序列
+        bufferlist3=group["pct_chg"].reset_index()
+
+        #合并 正确index数列 昨日数列 和明日数列
+        bufferlist3=pd.concat([bufferlist3,yesterday_chg,tomorrow_chg],axis=1,ignore_index=True)
+
+        #重新将index回设成df_all的index，并且删掉从0开始的index
+        bufferlist3.set_index([0], drop=True, append=False, inplace=True, verify_integrity=False) 
+
+        #删除本身自己的当日数据
+        bufferlist3.drop([1],axis=1,inplace=True)
+        #重命名列名
+        bufferlist3.columns = ['yesterday', 'tomorrow']
+        #添加到集合
+        df_empty=df_empty.append(bufferlist3)
+
+        #print(df_empty)
+
+        #bufferlist3.drop('pct_chg',axis=1, inplace=True)
+
+        #df_all[df_all['ts_code']==cur_ts_code]['newtest']=1
         #group["newtest"]=bufferlist
 
         #print(bufferlist)
@@ -701,20 +737,125 @@ def feature_env_codeanddate():
 
 
         #print(group)
-        print(df_all)
+        #break
+        #if(counter==2):
+        #    break
 
+        #counter+=1
         fed=1
 
-    
+    #将生成好的乱序但是index对应数据行正确的数据，左连接到df_all中
+    df_all=df_all.join(df_empty,how='left', lsuffix='_caller', rsuffix='_other')
+
     #grouped=df_all.groupby(['ts_code'])
 
     #print(grouped)
-
-    print(df_all)
+    #pd.set_option('display.max_rows', 1000)  # 设置显示最大行
+    #print(df_all)
 
     df_all.to_csv("zzztest.csv")
     dwdw=1
+
+
+def feature_env_2():
     
+    train_data=pd.read_csv("zzztest.csv",index_col=0,header=0)
+
+    train_data['tomorrow']=(train_data['tomorrow']+10.5)//1
+
+    train_data[train_data['tomorrow']>20]=20
+
+    train_data[train_data['tomorrow']<0]=0
+
+    #see=train_data[train_data['tomorrow']<-1]
+
+    #pd.set_option('display.max_rows', 10000)  # 设置显示最大行
+
+    #print(see)
+    #print(train_data)
+    #删除第一天和最后一天
+    dropindex=train_data[train_data['trade_date']==20180102].index
+    train_data.drop(dropindex,inplace=True)
+
+    dropindex=train_data[train_data['trade_date']==20181228].index
+    train_data.drop(dropindex,inplace=True)
+
+    print(train_data)
+
+    print(train_data.describe())
+    # 默认统计数值型数据每列数据平均值，标准差，最大值，最小值，25%，50%，75%比例。
+    print(train_data.describe(include=['O']))
+    # 统计字符串型数据的总数，取不同值数量，频率最高的取值。其中include参数是结果数据类型白名单，O代表object类型，可用info中输出类型筛选。
+
+    print("Before", train_data.shape)
+
+
+    train_data.to_csv("ztrain.csv")
+    dwdwd=1
+
+
+def lgb_train():
+
+    train=pd.read_csv("ztrain.csv",index_col=0,header=0)
+    train=train.reset_index(drop=True)
+
+    y_train = np.array(train['tomorrow'])
+    train.drop(['tomorrow','ts_code','trade_date'],axis=1,inplace=True)
+
+    #print(train)
+
+    train_ids = train.index.tolist()
+
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    skf.get_n_splits(train_ids, y_train)
+
+    train=train.values
+
+    counter=0
+
+    for train_index, test_index in skf.split(train_ids, y_train):
+        
+        X_fit, X_val = train[train_index],train[test_index]
+        y_fit, y_val = y_train[train_index], y_train[test_index]
+
+        #lgb_model = lgb.LGBMClassifier(max_depth=-1,
+        #                               n_estimators=100,
+        #                               learning_rate=0.1,
+        #                               num_leaves=2**10-1,
+        #                               colsample_bytree=0.4,
+        #                               objective='multiclass', 
+        #                               num_class=21,
+        #                               n_jobs=-1)
+                                   
+
+        #lgb_model.fit(X_fit, y_fit, eval_metric='multi_error',
+        #              eval_set=[(X_val, y_val)], 
+        #              verbose=100, early_stopping_rounds=100)
+        
+        #joblib.dump(lgb_model,'gbm.pkl')
+
+
+        lgb_model = joblib.load('gbm.pkl')
+
+        pred_test = lgb_model.predict_proba(X_val)
+
+        #np.set_printoptions(threshold=np.inf) 
+
+        #pd.set_option('display.max_rows', 10000)  # 设置显示最大行
+        #pd.set_option('display.max_columns', None)
+        print(pred_test)
+
+        data1 = pd.DataFrame(pred_test)
+        data1.to_csv('data1.csv')
+
+        gc.collect()
+        counter += 1    
+        #Stop fitting to prevent time limit error
+        if counter == 1 : break
+
+
+    X_train,X_test,y_train,y_test=train_test_split(iris.data,iris.target,test_size=0.3)
+
 
 def get_date_feature():
 
@@ -751,7 +892,10 @@ if __name__ == '__main__':
     #Get_AllkData()
     #CSZL_CodelistToDatelist()
 
-    feature_env_codeanddate()
+    lgb_train()
+
+    feature_env_2()
+    #feature_env_codeanddate()
 
     #get_codeanddate_feature()
 
