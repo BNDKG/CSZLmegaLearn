@@ -761,11 +761,53 @@ def feature_env_2():
     
     train_data=pd.read_csv("zzztest.csv",index_col=0,header=0)
 
-    train_data['tomorrow']=(train_data['tomorrow']+10.5)//1
+    dolist=['pct_chg','tomorrow','yesterday']
 
-    train_data[train_data['tomorrow']>20]=20
+    for singlecol in dolist:
 
-    train_data[train_data['tomorrow']<0]=0
+        buffer=(train_data[singlecol]+10)//1
+        buffer[buffer>20]=20
+        buffer[buffer<0]=0
+        train_data[singlecol]=buffer
+
+    ##将明日正则化(拟改用rank或正太分布间隔)
+    #train_data['tomorrow']=(train_data['tomorrow']+10.5)//1
+    #train_data[train_data['tomorrow']>20]=20
+    #train_data[train_data['tomorrow']<0]=0
+
+    ##将昨日正则化
+    #train_data['yesterday']=(train_data['yesterday']+10.5)//1
+    #train_data[train_data['yesterday']>20]=20
+    #train_data[train_data['yesterday']<0]=0
+
+    dolist=['open','high','low','close']
+
+    for singlecol in dolist:
+
+        buffer=(((train_data[singlecol]-train_data['pre_close'])*100)/train_data['pre_close']+10)//1
+        buffer[buffer>20]=20
+        buffer[buffer<0]=0
+        train_data[singlecol]=buffer
+
+    ##最高正则化
+    #buffer=(((train_data['high']-train_data['pre_close'])*100)/train_data['pre_close']+10)//1
+    #buffer[buffer>20]=20
+    #buffer[buffer<0]=0
+    #train_data['high']=buffer
+    ##train_data[train_data['high']>20]['high']=20
+    ##train_data[train_data['high']<0]['high']=1
+
+    ##最低正则化
+    #buffer=(((train_data['low']-train_data['pre_close'])*100)/train_data['pre_close']+10)//1
+    #buffer[buffer>20]=20
+    #buffer[buffer<0]=0
+    #train_data['low']=buffer
+
+    ##测试正则化
+    #train_data['close']=(((train_data['close']-train_data['pre_close'])*100)/train_data['pre_close']+10)//1
+    #train_data[train_data['close']>20]['close']=20
+    #train_data[train_data['close']<0]['close']=12
+
 
     #see=train_data[train_data['tomorrow']<-1]
 
@@ -780,6 +822,9 @@ def feature_env_2():
     dropindex=train_data[train_data['trade_date']==20181228].index
     train_data.drop(dropindex,inplace=True)
 
+    dropindex=train_data[train_data['pct_chg']>18].index
+    train_data.drop(dropindex,inplace=True)
+
     print(train_data)
 
     print(train_data.describe())
@@ -789,7 +834,7 @@ def feature_env_2():
 
     print("Before", train_data.shape)
 
-
+    train_data=train_data.reset_index(drop=True)
     train_data.to_csv("ztrain.csv")
     dwdwd=1
 
@@ -800,13 +845,22 @@ def lgb_train():
     train=train.reset_index(drop=True)
 
     y_train = np.array(train['tomorrow'])
-    train.drop(['tomorrow','ts_code','trade_date'],axis=1,inplace=True)
+    train.drop(['tomorrow','ts_code','trade_date','pre_close','change','amount','vol','pct_chg'],axis=1,inplace=True)
+    #pre_close	change	pct_chg	vol	amount
+
+
+    lgb_model = joblib.load('gbm.pkl')
+    pred_test = lgb_model.predict_proba(train)
+
+    data1 = pd.DataFrame(pred_test)
+    data1.to_csv('data1.csv')
+
 
     #print(train)
 
     train_ids = train.index.tolist()
 
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
     skf.get_n_splits(train_ids, y_train)
 
     train=train.values
@@ -818,21 +872,21 @@ def lgb_train():
         X_fit, X_val = train[train_index],train[test_index]
         y_fit, y_val = y_train[train_index], y_train[test_index]
 
-        #lgb_model = lgb.LGBMClassifier(max_depth=-1,
-        #                               n_estimators=100,
-        #                               learning_rate=0.1,
-        #                               num_leaves=2**10-1,
-        #                               colsample_bytree=0.4,
-        #                               objective='multiclass', 
-        #                               num_class=21,
-        #                               n_jobs=-1)
+        lgb_model = lgb.LGBMClassifier(max_depth=-1,
+                                       n_estimators=200,
+                                       learning_rate=0.1,
+                                       num_leaves=2**8-1,
+                                       colsample_bytree=0.4,
+                                       objective='multiclass', 
+                                       num_class=21,
+                                       n_jobs=-1)
                                    
 
-        #lgb_model.fit(X_fit, y_fit, eval_metric='multi_error',
-        #              eval_set=[(X_val, y_val)], 
-        #              verbose=100, early_stopping_rounds=100)
+        lgb_model.fit(X_fit, y_fit, eval_metric='multi_error',
+                      eval_set=[(X_val, y_val)], 
+                      verbose=100, early_stopping_rounds=100)
         
-        #joblib.dump(lgb_model,'gbm.pkl')
+        joblib.dump(lgb_model,'gbm.pkl')
 
 
         lgb_model = joblib.load('gbm.pkl')
@@ -843,7 +897,7 @@ def lgb_train():
 
         #pd.set_option('display.max_rows', 10000)  # 设置显示最大行
         #pd.set_option('display.max_columns', None)
-        print(pred_test)
+        #print(pred_test)
 
         data1 = pd.DataFrame(pred_test)
         data1.to_csv('data1.csv')
