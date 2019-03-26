@@ -670,7 +670,7 @@ def feature_env_codeanddate():
 
     #df_all["newtest"]=0
 
-    df_empty = pd.DataFrame(columns=['yesterday', 'tomorrow'])
+    df_empty = pd.DataFrame(columns=['yesterday1','yesterday2','yesterday3','yesterday4','yesterday5', 'tomorrow'])
 
     counter=0
 
@@ -678,40 +678,84 @@ def feature_env_codeanddate():
 
         print(cur_ts_code)
 
+        bufferpct_chg=group["pct_chg"].reset_index(drop=True)
+
+        #取得正确index的group数据，并且把index保存成一列数据列，同时自身index变为从0开始的顺序序列
+        bufferlist3=group["pct_chg"].reset_index()
+
+        dropindex=bufferpct_chg.shape[0]
+        if(dropindex<6):
+            continue
+
+        for i in range(5):
+            cur_pct_chg=bufferpct_chg
+
+            #print(bufferpct_chg)
+
+            #dropindex=cur_pct_chg.shape[0]
+            #if(dropindex<6):
+            #    continue
+            ii=i+1
+            while ii>0:
+                dropindex=cur_pct_chg.shape[0]    
+                cur_pct_chg=cur_pct_chg.drop([dropindex-1,])
+
+                ii-=1
+
+            #新建空的行
+            plusrow=bufferpct_chg.copy(deep=True)
+            plusrow=plusrow[:(i+1)]
+            plusrow[plusrow!=0]=0          
+
+            cur_pct_chg=plusrow.append(cur_pct_chg,ignore_index=True)
+
+            #合并 正确index数列 昨日数列 和明日数列
+            bufferlist3=pd.concat([bufferlist3,cur_pct_chg],axis=1,ignore_index=True)
+
+
 
         #获得数据
-        yesterday_chg=group["pct_chg"].reset_index(drop=True)
-        tomorrow_chg=yesterday_chg
+        #yesterday_chg=group["pct_chg"].reset_index(drop=True)
+        tomorrow_chg=bufferpct_chg.copy(deep=True)
 
         #删除昨日最后一行
         dropindex=tomorrow_chg.shape[0]
-        yesterday_chg=yesterday_chg.drop([dropindex-1,])
+        #yesterday_chg=yesterday_chg.drop([dropindex-1,])
 
         #删除明日第一行
         tomorrow_chg=tomorrow_chg.drop([0])
 
         #新建空的一行
-        plusrow=yesterday_chg[:0]
-        plusrow["pct_chg"]=0
+        plusrow=bufferpct_chg.copy(deep=True)
+        plusrow=plusrow[:1]
+        plusrow[plusrow!=0]=0
 
-        #第一行为0，将删除最后一行的昨日添加到0后面，同时清空index
-        yesterday_chg=plusrow.append(yesterday_chg,ignore_index=True)
+        ##第一行为0，将删除最后一行的昨日添加到0后面，同时清空index
+        #yesterday_chg=plusrow.append(yesterday_chg,ignore_index=True)
+
         #将0添加到明日的最后一行，同时清空index
         tomorrow_chg=tomorrow_chg.append(plusrow,ignore_index=True)
 
         #取得正确index的group数据，并且把index保存成一列数据列，同时自身index变为从0开始的顺序序列
-        bufferlist3=group["pct_chg"].reset_index()
+        #bufferlist3=group["pct_chg"].reset_index()
 
         #合并 正确index数列 昨日数列 和明日数列
-        bufferlist3=pd.concat([bufferlist3,yesterday_chg,tomorrow_chg],axis=1,ignore_index=True)
+        bufferlist3=pd.concat([bufferlist3,tomorrow_chg],axis=1,ignore_index=True)
+
+
 
         #重新将index回设成df_all的index，并且删掉从0开始的index
         bufferlist3.set_index([0], drop=True, append=False, inplace=True, verify_integrity=False) 
 
+
         #删除本身自己的当日数据
         bufferlist3.drop([1],axis=1,inplace=True)
+
+
         #重命名列名
-        bufferlist3.columns = ['yesterday', 'tomorrow']
+        bufferlist3.columns = ['yesterday1','yesterday2','yesterday3','yesterday4','yesterday5', 'tomorrow']
+
+
         #添加到集合
         df_empty=df_empty.append(bufferlist3)
 
@@ -753,7 +797,7 @@ def feature_env_codeanddate():
     #pd.set_option('display.max_rows', 1000)  # 设置显示最大行
     #print(df_all)
 
-    df_all.to_csv("zzztest.csv")
+    df_all.to_csv("zzz2test.csv")
     dwdw=1
 
 
@@ -945,6 +989,8 @@ if __name__ == '__main__':
     #HistoryDataGet(Datas=10)
     #Get_AllkData()
     #CSZL_CodelistToDatelist()
+
+    feature_env_codeanddate()
 
     lgb_train()
 
