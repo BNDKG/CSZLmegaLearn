@@ -570,12 +570,12 @@ def get_codeanddate_feature():
 
     pro = ts.pro_api(token)
 
-    date=pro.query('trade_cal', start_date='20180102', end_date='20181230')
+    date=pro.query('trade_cal', start_date='20160102', end_date='20161230')
 
     date=date[date["is_open"]==1]
     get_list=date["cal_date"]
 
-    df_all=pro.daily(trade_date="20180101")
+    df_all=pro.daily(trade_date="20160101")
 
     zcounter=0
     zall=get_list.shape[0]
@@ -605,46 +605,46 @@ def get_codeanddate_feature():
 
     df_all=df_all.reset_index(drop=True)
 
-    df_all.to_csv("savetest.csv")
+    df_all.to_csv("savetest2016.csv")
 
 
 
 
 
-    #df = pro.query('adj_factor',  trade_date='20180315')
+    ##df = pro.query('adj_factor',  trade_date='20180315')
 
-    #df = pro.shibor(start_date='20100101', end_date='20101101')
+    ##df = pro.shibor(start_date='20100101', end_date='20101101')
 
-    df[["change","pct_chg"]]=df[["change","pct_chg"]].apply(pd.to_numeric, errors='coerce')
+    #df[["change","pct_chg"]]=df[["change","pct_chg"]].apply(pd.to_numeric, errors='coerce')
 
-    print(df[df["pct_chg"]>9])
+    #print(df[df["pct_chg"]>9])
 
-    #df2 = pd.to_numeric(df2.pct_chg, errors='coerce' )
+    ##df2 = pd.to_numeric(df2.pct_chg, errors='coerce' )
 
-    print(df2)
+    #print(df2)
 
-    #获取基本数据
-    data = pro.query('stock_basic', exchange='', list_status='L', fields='ts_code,symbol,market,name,area,industry,list_date')
+    ##获取基本数据
+    #data = pro.query('stock_basic', exchange='', list_status='L', fields='ts_code,symbol,market,name,area,industry,list_date')
 
-    data.set_index('ts_code',inplace=True)
+    #data.set_index('ts_code',inplace=True)
 
-    df = pro.query('daily_basic', ts_code='', trade_date='20190307',fields='ts_code,trade_date,turnover_rate,turnover_rate_f,volume_ratio,pe,pb,ps,total_share,float_share,free_share,total_mv,circ_mv,close')
+    #df = pro.query('daily_basic', ts_code='', trade_date='20190307',fields='ts_code,trade_date,turnover_rate,turnover_rate_f,volume_ratio,pe,pb,ps,total_share,float_share,free_share,total_mv,circ_mv,close')
 
-    df.set_index('ts_code',inplace=True)
+    #df.set_index('ts_code',inplace=True)
 
-    mix=pd.merge(data, df, how='outer', on=None,  
+    #mix=pd.merge(data, df, how='outer', on=None,  
 
-            left_index=True, right_index=True, sort=False,  
+    #        left_index=True, right_index=True, sort=False,  
 
-            suffixes=('_x', '_y'), copy=True, indicator=False)
-
-
-    print(mix)
+    #        suffixes=('_x', '_y'), copy=True, indicator=False)
 
 
+    #print(mix)
 
 
-    data.to_csv("zmc.csv")
+
+
+    #data.to_csv("zmc.csv")
 
 
     sdads=1
@@ -800,8 +800,203 @@ def feature_env_codeanddate():
     df_all.to_csv("zzz2test.csv")
     dwdw=1
 
+def feature_env_codeanddate2():
 
-def feature_env_2():
+    df_all=pd.read_csv("savetest.csv",index_col=0,header=0)
+    
+    #df[["open","high","low" ,"close" ,"pre_close" ,"change","pct_chg","vol","amount"]]=df[["change","pct_chg"]].apply(pd.to_numeric, errors='coerce')
+
+    #df_all["newtest"]=0
+
+    df_empty = pd.DataFrame(columns=['amount_high','amount_low','amount_avg','high10','low10', 'yeaterday_chg','tomorrow_open'])
+
+    counter=0
+
+    for cur_ts_code,group in df_all.groupby('ts_code'):
+
+        print(cur_ts_code)
+        #取amount列
+        buffer_amount=group["amount"].reset_index(drop=True)
+        #数据量过小丢弃
+        dropindex=buffer_amount.shape[0]
+        if(dropindex<6):
+            continue
+
+        #取得正确index的group数据，并且把index保存成一列数据列，同时自身index变为从0开始的顺序序列
+        bufferlist3=group["amount"].reset_index()
+
+        #复制一份list
+        bufferamount_sum=bufferlist3
+
+        for i in range(1,10):
+            bufferpct_2=buffer_amount.shift(i)
+            bufferamount_sum=pd.concat([bufferamount_sum,bufferpct_2],axis=1,ignore_index=True)
+
+        #print(bufferamount_sum)
+
+        #计算10日量最大最小平均
+        buffer4=bufferamount_sum[range(2,11)]
+        high10=buffer4.max(axis=1)
+        low10=buffer4.min(axis=1)
+        mean10=buffer4.mean(axis=1)
+        buffer4['high10']=high10
+        buffer4['low10']=low10
+        buffer4['mean10']=mean10
+
+        buffer4.drop(range(2,11),axis=1,inplace=True)
+
+        #取明日数据列
+        buffer_amount=group["open"].reset_index(drop=True)
+        tomorrow_open=buffer_amount.shift(-1)
+
+        #取昨日数据列
+        buffer_amount=group["pct_chg"].reset_index(drop=True)
+        yeaterday_chg=buffer_amount.shift(1)
+
+        #取10日最高和最低
+        bufferhigh=group["high"].reset_index(drop=True)
+        bufferhigh_sum=bufferhigh.shift(1)
+        for i in range(2,9):
+            bufferpct_2=bufferhigh.shift(i)
+            bufferhigh_sum=pd.concat([bufferhigh_sum,bufferpct_2],axis=1,ignore_index=True)
+
+        high10=bufferhigh_sum.max(axis=1)
+        #print(high10)
+
+        #取10日最高和最低
+        bufferlow=group["low"].reset_index(drop=True)
+        bufferhigh_sum=bufferlow.shift(1)
+        for i in range(2,9):
+            bufferpct_2=bufferlow.shift(i)
+            bufferhigh_sum=pd.concat([bufferhigh_sum,bufferpct_2],axis=1,ignore_index=True)
+
+        #print(bufferhigh_sum)
+        low10=bufferhigh_sum.min(axis=1)
+        #print(low10)
+
+
+
+        #合并 正确index数列 昨日数列 和明日数列
+        bufferlist3=pd.concat([bufferlist3,buffer4,high10,low10,yeaterday_chg,tomorrow_open],axis=1,ignore_index=True)
+
+        #print(bufferlist3)
+
+        #重新将index回设成df_all的index，并且删掉从0开始的index
+        bufferlist3.set_index([0], drop=True, append=False, inplace=True, verify_integrity=False) 
+
+        #删除本身自己的当日数据
+        bufferlist3.drop([1],axis=1,inplace=True)
+
+        #print(bufferlist3)
+
+        #重命名列名
+        bufferlist3.columns = ['amount_high','amount_low','amount_avg','high10','low10', 'yeaterday_chg','tomorrow_open']
+
+        #print(bufferlist3)
+
+        #添加到集合
+        df_empty=df_empty.append(bufferlist3)
+
+        #print(df_empty)
+
+        #bufferlist3.drop('pct_chg',axis=1, inplace=True)
+
+        #df_all[df_all['ts_code']==cur_ts_code]['newtest']=1
+        #group["newtest"]=bufferlist
+
+        #print(bufferlist)
+        #print(bufferlist2)
+
+        #starter=0
+        #last_pct=0
+        #cur_pct=0
+        #for x in range(len(group.index)):
+        #    last2_pct=last_pct
+        #    last_pct=cur_pct
+        #    cur_pct=group["pct_chg"].iloc[x]
+
+        #    group["newtest"].iloc[x]=last_pct
+
+
+        #print(group)
+        #break
+        #if(counter==2):
+        #    break
+
+        #counter+=1
+        fed=1
+
+    #将生成好的乱序但是index对应数据行正确的数据，左连接到df_all中
+    df_all=df_all.join(df_empty,how='left', lsuffix='_caller', rsuffix='_other')
+
+    #grouped=df_all.groupby(['ts_code'])
+
+    #print(grouped)
+    #pd.set_option('display.max_rows', 1000)  # 设置显示最大行
+    #print(df_all)
+
+    df_all.to_csv("zzz2018test.csv")
+    dwdw=1
+
+def feature_env_codeanddate3(year):
+
+    bufferstring='savetest'+year+'.csv'
+
+    df_all=pd.read_csv(bufferstring,index_col=0,header=0,nrows=100000)
+    
+    df_all.drop(['change','vol'],axis=1,inplace=True)
+    
+
+    #明日开
+    df_all['tomorrow_open']=df_all.groupby('trade_date')['open'].shift(-1)
+
+    df_all['high_stop']=0
+    df_all.loc[df_all['pct_chg']>9,'high_stop']=1
+
+    df_all['price_real_rank']=df_all.groupby('trade_date')['pre_close'].rank(pct=True)
+    df_all['price_real_rank']=df_all['price_real_rank']*10//1
+    #1日
+    df_all['chg_rank']=df_all.groupby('trade_date')['pct_chg'].rank(pct=True)
+    df_all['chg_rank']=df_all['chg_rank']*10//1
+
+    #3日
+    xxx=df_all.groupby('ts_code')['chg_rank'].rolling(3).sum().reset_index()
+    xxx.set_index(['level_1'], drop=True, append=False, inplace=True, verify_integrity=False)
+    xxx.drop(['ts_code'],axis=1,inplace=True)
+
+    df_all=df_all.join(xxx, lsuffix='_1', rsuffix='_3')
+
+    df_all['chg_rank_3']=df_all.groupby('trade_date')['chg_rank_3'].rank(pct=True)
+    df_all['chg_rank_3']=df_all['chg_rank_3']*10//1
+
+    #print(df_all)
+
+    #10日均量
+    xxx=df_all.groupby('ts_code')['amount'].rolling(10).mean().reset_index()
+    xxx.set_index(['level_1'], drop=True, append=False, inplace=True, verify_integrity=False)
+    xxx.drop(['ts_code'],axis=1,inplace=True)
+    df_all=df_all.join(xxx, lsuffix='_1', rsuffix='_10')
+
+    #当日量占比
+    df_all['pst_amount']=df_all['amount_1']/df_all['amount_10']
+    df_all.drop(['amount_1','amount_10'],axis=1,inplace=True)
+    #当日量排名
+    df_all['pst_amount_rank']=df_all.groupby('trade_date')['pst_amount'].rank(pct=True)
+    df_all['pst_amount_rank']=df_all['pst_amount_rank']*10//1
+
+    #计算四种比例rank
+    dolist=['high','low','tomorrow_open']
+
+    for curc in dolist:
+        buffer=((train_data[singlecol]-train_data['pre_close'])*100)/train_data['pre_close']
+        train_data[singlecol]=buffer
+
+    print(df_all)
+
+    df_all.to_csv("zzz2018newtest.csv")
+    dwdw=1
+
+def feature_env_2_old():
     
     train_data=pd.read_csv("zzztest.csv",index_col=0,header=0)
 
@@ -882,29 +1077,225 @@ def feature_env_2():
     train_data.to_csv("ztrain.csv")
     dwdwd=1
 
+def feature_env_2(year):
+    
+    bufferstring='zzz'+year+'test.csv'
 
-def lgb_train():
+    train_data=pd.read_csv(bufferstring,index_col=0,header=0)
 
-    train=pd.read_csv("ztrain.csv",index_col=0,header=0)
+    listname=['high','low','close','pre_close','change','pct_chg','vol','amount']
+
+
+    train_data[listname]=train_data.groupby('ts_code')[listname].shift(1)
+
+
+    #删除无效值
+    dropindex=train_data[train_data['high']==train_data['low']].index
+    train_data.drop(dropindex,inplace=True)
+
+    #昨日成交与前10日平均比例
+    train_data['cur_amount_pct']=(train_data['amount']*10)/train_data['amount_avg']//1
+
+    #昨日排名
+    train_data['rank']=train_data.groupby('trade_date')['pct_chg'].rank(pct=True)
+    train_data['rank']=train_data['rank']*200//10
+
+    #df_empty = pd.DataFrame(columns=['price_rank'])
+
+    #for cur_trade_date,group in train_data.groupby('trade_date'):
+    #    print(cur_trade_date)
+
+    #    #取得正确index的group数据，并且把index保存成一列数据列，同时自身index变为从0开始的顺序序列
+    #    bufferlist3=group["pct_chg"].reset_index()
+
+    #    #取pct_chg列
+    #    buffer_pct_chg=group["pct_chg"].reset_index(drop=True)
+        
+    #    buffer_rank=buffer_pct_chg.rank(pct=True)
+    #    buffer_rank=buffer_rank*200//10
+
+
+    #    print(buffer_rank)
+
+    #    #重新将index回设成df_all的index，并且删掉从0开始的index
+    #    bufferlist3.set_index([0], drop=True, append=False, inplace=True, verify_integrity=False) 
+
+    #    #删除本身自己的当日数据
+    #    bufferlist3.drop([1],axis=1,inplace=True)
+
+    #    #print(bufferlist3)
+
+    #    #重命名列名
+    #    bufferlist3.columns = ['amount_high','amount_low','amount_avg','high10','low10', 'tomorrow']
+
+    #    #添加到集合
+    #    df_empty=df_empty.append(bufferlist3)
+
+    #    sefse=1
+
+    #训练结果
+    train_data['tomorrow']=(((train_data['tomorrow_open']-train_data['open'])*100)/train_data['open'])//1
+    
+    train_data.loc[train_data['tomorrow']>9,'tomorrow']=15
+    train_data.loc[(train_data['tomorrow']<=9) & (5<train_data['tomorrow']),'tomorrow']=6
+    train_data.loc[(train_data['tomorrow']<=5) & (2<train_data['tomorrow']),'tomorrow']=3
+    train_data.loc[(train_data['tomorrow']<=2) & (0.5<train_data['tomorrow']),'tomorrow']=1
+    train_data.loc[(train_data['tomorrow']<=0.5) & (0<train_data['tomorrow']),'tomorrow']=0
+    train_data.loc[(train_data['tomorrow']<=0) & (-0.5<train_data['tomorrow']),'tomorrow']=0
+    train_data.loc[(train_data['tomorrow']<=-0.5) & (-2<train_data['tomorrow']),'tomorrow']=-1
+    train_data.loc[(train_data['tomorrow']<=-2) & (-5<train_data['tomorrow']),'tomorrow']=-3
+    train_data.loc[(train_data['tomorrow']<=-5) & (-9<train_data['tomorrow']),'tomorrow']=-6
+    train_data.loc[train_data['tomorrow']<=-9,'tomorrow']=-15
+
+    #train_data[2<=train_data['tomorrow']<=5]=3
+    #train_data[0<=train_data['tomorrow']<=2]=1
+    #train_data[-2<=train_data['tomorrow']<=0]=-1
+    #train_data[-5<=train_data['tomorrow']<=-2]=-3
+    #train_data[-9<=train_data['tomorrow']<=-5]=-6
+    #train_data[train_data['tomorrow']<-9]=-12
+
+    #标准化
+    dolist=['pct_chg']
+
+    for singlecol in dolist:
+
+        buffer=(train_data[singlecol])//1
+        train_data[singlecol]=buffer
+
+    #dolist=['pct_chg','tomorrow']
+
+    #for singlecol in dolist:
+
+    #    buffer=(train_data[singlecol]+10)//1
+    #    buffer[buffer>20]=20
+    #    buffer[buffer<0]=0
+    #    train_data[singlecol]=buffer
+
+
+    dolist=['high','low']
+
+    for singlecol in dolist:
+
+        buffer=(((train_data[singlecol]-train_data['pre_close'])*100)/train_data['pre_close'])//1
+        buffer[buffer>10]=10
+        buffer[buffer<-10]=-10
+        train_data[singlecol]=buffer
+
+    dolist=['open']
+
+    for singlecol in dolist:
+
+        buffer=(((train_data[singlecol]-train_data['close'])*100)/train_data['close'])//1
+        buffer[buffer>10]=10
+        buffer[buffer<-10]=-10
+        train_data[singlecol]=buffer
+
+
+    dolist=['high10','low10']
+
+    for singlecol in dolist:
+
+        buffer=(((train_data[singlecol]-train_data['close'])*100)/train_data['close'])//1
+        buffer[buffer>25]=25
+        buffer[buffer<-25]=-25
+        train_data[singlecol]=buffer
+
+    dolist=['pct_chg']
+
+    for singlecol in dolist:
+
+        buffer=train_data[singlecol]
+        buffer[buffer>11]=11
+        buffer[buffer<-11]=-11
+        train_data[singlecol]=buffer
+    
+    train_data['low_down']=train_data['low']-train_data['pct_chg']
+    train_data['high_up']=train_data['high']-train_data['pct_chg']
+
+    #see=train_data[train_data['tomorrow']<-1]
+
+    #pd.set_option('display.max_rows', 10000)  # 设置显示最大行
+
+    #print(see)
+    #print(train_data)
+    #删除第一天和最后一天
+
+    startdata=int(year)*10000+120
+    enddata=int(year)*10000+1220
+
+    dropindex=train_data[train_data['trade_date']<=startdata].index
+    train_data.drop(dropindex,inplace=True)
+
+    dropindex=train_data[train_data['trade_date']>=enddata].index
+    train_data.drop(dropindex,inplace=True)
+
+    dropindex=train_data[train_data['open']>=9].index
+    train_data.drop(dropindex,inplace=True)
+
+
+
+    print(train_data)
+
+    print(train_data.describe())
+    # 默认统计数值型数据每列数据平均值，标准差，最大值，最小值，25%，50%，75%比例。
+    print(train_data.describe(include=['O']))
+    # 统计字符串型数据的总数，取不同值数量，频率最高的取值。其中include参数是结果数据类型白名单，O代表object类型，可用info中输出类型筛选。
+
+    print("Before", train_data.shape)
+
+    train_data.dropna(inplace=True)
+    train_data=train_data.reset_index(drop=True)
+
+    bufferstring='ztrain'+year+'.csv'
+
+    train_data.to_csv(bufferstring)
+    dwdwd=1
+
+def lgb_train(year):
+
+    readstring='ztrain'+year+'.csv'
+
+    train=pd.read_csv(readstring,index_col=0,header=0,nrows=10000)
+    #train=pd.read_csv(readstring,index_col=0,header=0)
     train=train.reset_index(drop=True)
+    train2=train.copy(deep=True)
+
 
     y_train = np.array(train['tomorrow'])
-    train.drop(['tomorrow','ts_code','trade_date','pre_close','change','amount','vol','pct_chg'],axis=1,inplace=True)
+    train.drop(['tomorrow','ts_code','trade_date','pre_close','change','amount','vol','close','amount_high','amount_low','amount_avg','yeaterday_chg','tomorrow_open'],axis=1,inplace=True)
     #pre_close	change	pct_chg	vol	amount
+
+    #open	high	low	close	pre_close	change	pct_chg	vol	amount	amount_high	amount_low	amount_avg	high10	low10	yeaterday_chg	tomorrow_open	cur_amount_pct	rank	tomorrow	low_down	high_up
+    #ts_code	trade_date	open	high	low	close	pre_close	change	pct_chg	vol	amount	amount_high	amount_low	amount_avg	high10	low10	yeaterday_chg	tomorrow_open
 
 
     lgb_model = joblib.load('gbm.pkl')
+
+    dsadwd=lgb_model.feature_importances_
+
     pred_test = lgb_model.predict_proba(train)
 
     data1 = pd.DataFrame(pred_test)
-    data1.to_csv('data1.csv')
+
+    data1['mix']=0
+    multlist=[-15,-6,-3,-1,0,1,3,6,15]
+
+    for i in range(9):
+        buffer=data1[i]*multlist[i]
+        data1['mix']=data1['mix']+buffer
+
+    train2=train2.join(data1)
+    
+    print(train2)
+    readstring='data'+year+'mixd.csv'
+    train2.to_csv(readstring)
 
 
-    #print(train)
+
 
     train_ids = train.index.tolist()
 
-    skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     skf.get_n_splits(train_ids, y_train)
 
     train=train.values
@@ -917,10 +1308,10 @@ def lgb_train():
         y_fit, y_val = y_train[train_index], y_train[test_index]
 
         lgb_model = lgb.LGBMClassifier(max_depth=-1,
-                                       n_estimators=200,
-                                       learning_rate=0.1,
+                                       n_estimators=400,
+                                       learning_rate=0.05,
                                        num_leaves=2**8-1,
-                                       colsample_bytree=0.4,
+                                       colsample_bytree=0.6,
                                        objective='multiclass', 
                                        num_class=21,
                                        n_jobs=-1)
@@ -990,14 +1381,19 @@ if __name__ == '__main__':
     #Get_AllkData()
     #CSZL_CodelistToDatelist()
 
-    feature_env_codeanddate()
+    #get_codeanddate_feature()
 
-    lgb_train()
+    #feature_env_codeanddate2()
+    feature_env_codeanddate3('2018')
 
-    feature_env_2()
+
+    #feature_env_2('2018')
+
+    lgb_train('2018')
+
     #feature_env_codeanddate()
 
-    #get_codeanddate_feature()
+
 
 
     #pro.trade_cal(exchange='', start_date='20180101', end_date='20181231')
