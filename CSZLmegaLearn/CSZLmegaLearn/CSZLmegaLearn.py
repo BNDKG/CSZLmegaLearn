@@ -942,17 +942,20 @@ def feature_env_codeanddate3(year):
 
     bufferstring='savetest'+year+'.csv'
 
-    df_all=pd.read_csv(bufferstring,index_col=0,header=0,nrows=100000)
+    df_all=pd.read_csv(bufferstring,index_col=0,header=0)
+    #df_all=pd.read_csv(bufferstring,index_col=0,header=0,nrows=100000)
     
     df_all.drop(['change','vol'],axis=1,inplace=True)
     
 
-    #明日开
-    df_all['tomorrow_open']=df_all.groupby('trade_date')['open'].shift(-1)
-
+    #明日幅度
+    df_all['tomorrow_chg']=df_all.groupby('ts_code')['pct_chg'].shift(-1)
+    df_all['tomorrow_chg_rank']=df_all.groupby('trade_date')['tomorrow_chg'].rank(pct=True)
+    df_all['tomorrow_chg_rank']=df_all['tomorrow_chg_rank']*9.9//1
+    #是否停
     df_all['high_stop']=0
     df_all.loc[df_all['pct_chg']>9,'high_stop']=1
-
+    #真实价格范围
     df_all['price_real_rank']=df_all.groupby('trade_date')['pre_close'].rank(pct=True)
     df_all['price_real_rank']=df_all['price_real_rank']*10//1
     #1日
@@ -984,16 +987,29 @@ def feature_env_codeanddate3(year):
     df_all['pst_amount_rank']=df_all.groupby('trade_date')['pst_amount'].rank(pct=True)
     df_all['pst_amount_rank']=df_all['pst_amount_rank']*10//1
 
-    #计算四种比例rank
-    dolist=['high','low','tomorrow_open']
+    #计算三种比例rank
+    dolist=['open','high','low']
 
     for curc in dolist:
-        buffer=((train_data[singlecol]-train_data['pre_close'])*100)/train_data['pre_close']
-        train_data[singlecol]=buffer
+        buffer=((df_all[curc]-df_all['close'])*100)/df_all['close']
+        df_all[curc]=buffer
+        df_all[curc]=df_all.groupby('trade_date')[curc].rank(pct=True)
+        df_all[curc]=df_all[curc]*10//1
+
+
+    df_all.drop(['close','pre_close','pct_chg','pst_amount'],axis=1,inplace=True)
+    #暂时不用的列
+    df_all=df_all[df_all['high_stop']==0]
+    df_all.drop(['tomorrow_chg','high_stop'],axis=1,inplace=True)
+
+
+
+    df_all.dropna(axis=0,how='any',inplace=True)
 
     print(df_all)
+    df_all=df_all.reset_index(drop=True)
 
-    df_all.to_csv("zzz2018newtest.csv")
+    df_all.to_csv('ztrain'+year+'.csv')
     dwdw=1
 
 def feature_env_2_old():
@@ -1345,6 +1361,95 @@ def lgb_train(year):
 
     X_train,X_test,y_train,y_test=train_test_split(iris.data,iris.target,test_size=0.3)
 
+def lgb_train_2(year):
+
+    readstring='ztrain'+year+'.csv'
+
+    #train=pd.read_csv(readstring,index_col=0,header=0,nrows=10000)
+    train=pd.read_csv(readstring,index_col=0,header=0)
+    train=train.reset_index(drop=True)
+    train2=train.copy(deep=True)
+
+
+    y_train = np.array(train['tomorrow_chg_rank'])
+    train.drop(['tomorrow_chg_rank','ts_code','trade_date'],axis=1,inplace=True)
+
+
+    lgb_model = joblib.load('gbm.pkl')
+
+    dsadwd=lgb_model.feature_importances_
+
+    pred_test = lgb_model.predict_proba(train)
+
+    data1 = pd.DataFrame(pred_test)
+
+    #data1['mix']=0
+    #multlist=[-15,-6,-3,-1,0,1,3,6,15]
+
+    #for i in range(9):
+    #    buffer=data1[i]*multlist[i]
+    #    data1['mix']=data1['mix']+buffer
+
+    train2=train2.join(data1)
+    
+    print(train2)
+    readstring='data'+year+'mixd.csv'
+    train2.to_csv(readstring)
+
+
+
+
+    train_ids = train.index.tolist()
+
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    skf.get_n_splits(train_ids, y_train)
+
+    train=train.values
+
+    counter=0
+
+    for train_index, test_index in skf.split(train_ids, y_train):
+        
+        X_fit, X_val = train[train_index],train[test_index]
+        y_fit, y_val = y_train[train_index], y_train[test_index]
+
+        lgb_model = lgb.LGBMClassifier(max_depth=-1,
+                                       n_estimators=400,
+                                       learning_rate=0.05,
+                                       num_leaves=2**8-1,
+                                       colsample_bytree=0.6,
+                                       objective='multiclass', 
+                                       num_class=21,
+                                       n_jobs=-1)
+                                   
+
+        lgb_model.fit(X_fit, y_fit, eval_metric='multi_error',
+                      eval_set=[(X_val, y_val)], 
+                      verbose=100, early_stopping_rounds=100)
+        
+        joblib.dump(lgb_model,'gbm.pkl')
+
+
+        lgb_model = joblib.load('gbm.pkl')
+
+        pred_test = lgb_model.predict_proba(X_val)
+
+        #np.set_printoptions(threshold=np.inf) 
+
+        #pd.set_option('display.max_rows', 10000)  # 设置显示最大行
+        #pd.set_option('display.max_columns', None)
+        #print(pred_test)
+
+        data1 = pd.DataFrame(pred_test)
+        data1.to_csv('data1.csv')
+
+        gc.collect()
+        counter += 1    
+        #Stop fitting to prevent time limit error
+        if counter == 1 : break
+
+
+    X_train,X_test,y_train,y_test=train_test_split(iris.data,iris.target,test_size=0.3)
 
 def get_date_feature():
 
@@ -1389,7 +1494,7 @@ if __name__ == '__main__':
 
     #feature_env_2('2018')
 
-    lgb_train('2018')
+    lgb_train_2('2018')
 
     #feature_env_codeanddate()
 
