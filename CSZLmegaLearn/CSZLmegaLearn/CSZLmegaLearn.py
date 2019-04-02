@@ -955,6 +955,9 @@ def feature_env_codeanddate3(year):
     #是否停
     df_all['high_stop']=0
     df_all.loc[df_all['pct_chg']>9,'high_stop']=1
+    df_all.loc[(df_all['pct_chg']<5.5) & (4.5<df_all['pct_chg']),'high_stop']=1
+
+
     #真实价格范围
     df_all['price_real_rank']=df_all.groupby('trade_date')['pre_close'].rank(pct=True)
     df_all['price_real_rank']=df_all['price_real_rank']*10//1
@@ -995,6 +998,8 @@ def feature_env_codeanddate3(year):
         df_all[curc]=buffer
         df_all[curc]=df_all.groupby('trade_date')[curc].rank(pct=True)
         df_all[curc]=df_all[curc]*10//1
+
+
 
 
     df_all.drop(['close','pre_close','pct_chg','pst_amount'],axis=1,inplace=True)
@@ -1285,26 +1290,26 @@ def lgb_train(year):
     #ts_code	trade_date	open	high	low	close	pre_close	change	pct_chg	vol	amount	amount_high	amount_low	amount_avg	high10	low10	yeaterday_chg	tomorrow_open
 
 
-    lgb_model = joblib.load('gbm.pkl')
+    #lgb_model = joblib.load('gbm.pkl')
 
-    dsadwd=lgb_model.feature_importances_
+    #dsadwd=lgb_model.feature_importances_
 
-    pred_test = lgb_model.predict_proba(train)
+    #pred_test = lgb_model.predict_proba(train)
 
-    data1 = pd.DataFrame(pred_test)
+    #data1 = pd.DataFrame(pred_test)
 
-    data1['mix']=0
-    multlist=[-15,-6,-3,-1,0,1,3,6,15]
+    #data1['mix']=0
+    #multlist=[-15,-6,-3,-1,0,1,3,6,15]
 
-    for i in range(9):
-        buffer=data1[i]*multlist[i]
-        data1['mix']=data1['mix']+buffer
+    #for i in range(9):
+    #    buffer=data1[i]*multlist[i]
+    #    data1['mix']=data1['mix']+buffer
 
-    train2=train2.join(data1)
+    #train2=train2.join(data1)
     
-    print(train2)
-    readstring='data'+year+'mixd.csv'
-    train2.to_csv(readstring)
+    #print(train2)
+    #readstring='data'+year+'mixd.csv'
+    #train2.to_csv(readstring)
 
 
 
@@ -1383,12 +1388,12 @@ def lgb_train_2(year):
 
     data1 = pd.DataFrame(pred_test)
 
-    #data1['mix']=0
-    #multlist=[-15,-6,-3,-1,0,1,3,6,15]
+    data1['mix']=0
+    multlist=[-10,-6,-3,-1,0,0,1,3,6,10]
 
-    #for i in range(9):
-    #    buffer=data1[i]*multlist[i]
-    #    data1['mix']=data1['mix']+buffer
+    for i in range(10):
+        buffer=data1[i]*multlist[i]
+        data1['mix']=data1['mix']+buffer
 
     train2=train2.join(data1)
     
@@ -1489,7 +1494,7 @@ if __name__ == '__main__':
     #get_codeanddate_feature()
 
     #feature_env_codeanddate2()
-    feature_env_codeanddate3('2018')
+    #feature_env_codeanddate3('2018')
 
 
     #feature_env_2('2018')
