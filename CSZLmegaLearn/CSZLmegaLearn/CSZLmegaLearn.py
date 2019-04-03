@@ -570,12 +570,12 @@ def get_codeanddate_feature():
 
     pro = ts.pro_api(token)
 
-    date=pro.query('trade_cal', start_date='20160102', end_date='20161230')
+    date=pro.query('trade_cal', start_date='20100102', end_date='20121230')
 
     date=date[date["is_open"]==1]
     get_list=date["cal_date"]
 
-    df_all=pro.daily(trade_date="20160101")
+    df_all=pro.daily(trade_date="20100101")
 
     zcounter=0
     zall=get_list.shape[0]
@@ -605,7 +605,7 @@ def get_codeanddate_feature():
 
     df_all=df_all.reset_index(drop=True)
 
-    df_all.to_csv("savetest2016.csv")
+    df_all.to_csv("savetest2010.csv")
 
 
 
@@ -1005,7 +1005,8 @@ def feature_env_codeanddate3(year):
     df_all.drop(['close','pre_close','pct_chg','pst_amount'],axis=1,inplace=True)
     #暂时不用的列
     df_all=df_all[df_all['high_stop']==0]
-    df_all.drop(['tomorrow_chg','high_stop'],axis=1,inplace=True)
+    #'tomorrow_chg'
+    df_all.drop(['high_stop'],axis=1,inplace=True)
 
 
 
@@ -1377,7 +1378,7 @@ def lgb_train_2(year):
 
 
     y_train = np.array(train['tomorrow_chg_rank'])
-    train.drop(['tomorrow_chg_rank','ts_code','trade_date'],axis=1,inplace=True)
+    train.drop(['tomorrow_chg','tomorrow_chg_rank','ts_code','trade_date'],axis=1,inplace=True)
 
 
     lgb_model = joblib.load('gbm.pkl')
@@ -1389,7 +1390,7 @@ def lgb_train_2(year):
     data1 = pd.DataFrame(pred_test)
 
     data1['mix']=0
-    multlist=[-10,-6,-3,-1,0,0,1,3,6,10]
+    multlist=[-10,-3,-2,-1,0,0,1,2,3,10]
 
     for i in range(10):
         buffer=data1[i]*multlist[i]
@@ -1484,6 +1485,25 @@ def get_code_feature():
 
 if __name__ == '__main__':
 
+    #df_all_first=pd.read_csv('savetest_all.csv',index_col=0,header=0)
+    #print(df_all_first)
+
+    #year=2013
+
+    #readstring='savetest'+str(year)+'.csv'
+    #df_all_first=pd.read_csv(readstring,index_col=0,header=0)
+    #print(df_all_first)
+    #for i in range(2):
+    #    year=2014+i
+    #    readstring='savetest'+str(year)+'.csv'
+    #    df_all_sec=pd.read_csv(readstring,index_col=0,header=0)
+    #    df_all_first=df_all_first.append(df_all_sec)
+    #    print(df_all_first)
+
+    #df_all_first=df_all_first.reset_index(drop=True)
+
+    #df_all_first.to_csv('savetest_all.csv')
+
     #adwdd=ts.get_k_data("603999",start="2018-10-10", end="2018-12-08")
 
     #获取历史信息
@@ -1494,12 +1514,12 @@ if __name__ == '__main__':
     #get_codeanddate_feature()
 
     #feature_env_codeanddate2()
-    #feature_env_codeanddate3('2018')
+    feature_env_codeanddate3('2017')
 
 
     #feature_env_2('2018')
 
-    lgb_train_2('2018')
+    lgb_train_2('2017')
 
     #feature_env_codeanddate()
 
