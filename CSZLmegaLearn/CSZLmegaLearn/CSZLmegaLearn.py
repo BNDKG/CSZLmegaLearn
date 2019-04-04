@@ -570,12 +570,12 @@ def get_codeanddate_feature():
 
     pro = ts.pro_api(token)
 
-    date=pro.query('trade_cal', start_date='20100102', end_date='20121230')
+    date=pro.query('trade_cal', start_date='20190102', end_date='20190401')
 
     date=date[date["is_open"]==1]
     get_list=date["cal_date"]
 
-    df_all=pro.daily(trade_date="20100101")
+    df_all=pro.daily(trade_date="20190101")
 
     zcounter=0
     zall=get_list.shape[0]
@@ -605,7 +605,7 @@ def get_codeanddate_feature():
 
     df_all=df_all.reset_index(drop=True)
 
-    df_all.to_csv("savetest2010.csv")
+    df_all.to_csv("savetest2019.csv")
 
 
 
@@ -645,6 +645,7 @@ def get_codeanddate_feature():
 
 
     #data.to_csv("zmc.csv")
+
 
 
     sdads=1
@@ -1017,6 +1018,9 @@ def feature_env_codeanddate3(year):
 
     df_all.to_csv('ztrain'+year+'.csv')
     dwdw=1
+
+
+
 
 def feature_env_2_old():
     
@@ -1407,7 +1411,7 @@ def lgb_train_2(year):
 
     train_ids = train.index.tolist()
 
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=22)
     skf.get_n_splits(train_ids, y_train)
 
     train=train.values
@@ -1513,13 +1517,14 @@ if __name__ == '__main__':
 
     #get_codeanddate_feature()
 
+
     #feature_env_codeanddate2()
-    feature_env_codeanddate3('2017')
+    feature_env_codeanddate3('2019')
 
 
     #feature_env_2('2018')
 
-    lgb_train_2('2017')
+    lgb_train_2('2019')
 
     #feature_env_codeanddate()
 
