@@ -46,6 +46,28 @@ def show_start():
 
         adwda=1
 
+def show_all_rate():
+    showsource=pd.read_csv('data2018mixd.csv',index_col=0,header=0)
+    databuffer=showsource['trade_date'].unique()
+
+    changer=[]
+    for curdata in databuffer:
+
+        cur_show=showsource[showsource["trade_date"]==curdata]
+        b=cur_show.sort_values(by="mix" , ascending=False)
+        #b=cur_show.sort_values(by="0" , ascending=True)
+        #b=cur_show[cur_show['mix']>0.40]
+        average=b.head(10)['tomorrow_chg'].mean()
+        changer.append(average)
+
+        adwda=1
+
+
+    standard_show(changer,day_interval=3)
+
+    sdfsdfsf=1
+
+
 def show(x_axis,y_axis,x_label="xlabel",y_label="ylabel ",title="title",x_tick="",y_tick="",colori="blue"):
         plt.figure(figsize=(19, 11))
         plt.scatter(x_axis, y_axis,s=8)
@@ -80,12 +102,12 @@ def get_codeanddate_feature():
 
     pro = ts.pro_api(token)
 
-    date=pro.query('trade_cal', start_date='20190102', end_date='20190404')
+    date=pro.query('trade_cal', start_date='20180102', end_date='20190404')
 
     date=date[date["is_open"]==1]
     get_list=date["cal_date"]
 
-    df_all=pro.daily(trade_date="20190101")
+    df_all=pro.daily(trade_date="20180101")
 
     zcounter=0
     zall=get_list.shape[0]
@@ -115,7 +137,7 @@ def get_codeanddate_feature():
 
     df_all=df_all.reset_index(drop=True)
 
-    df_all.to_csv("savetest2019.csv")
+    df_all.to_csv("savetest2018.csv")
 
 
     sdads=1
@@ -126,7 +148,7 @@ def feature_env_codeanddate3(year):
 
     df_all=pd.read_csv(bufferstring,index_col=0,header=0)
     #df_all=pd.read_csv(bufferstring,index_col=0,header=0,nrows=100000)
-    
+    #print(df_all)
     df_all.drop(['change','vol'],axis=1,inplace=True)
     
 
@@ -201,16 +223,95 @@ def feature_env_codeanddate3(year):
     dwdw=1
 
 
+def get_allchange():
+
+    #读取token
+    f = open('token.txt')
+    token = f.read()     #将txt文件的所有内容读入到字符串str中
+    f.close()
+
+    pro = ts.pro_api(token)
+
+    df = pro.index_daily(ts_code='000001.SH', start_date='20180101', end_date='20190404')
+    
+    b=df.sort_values(by="trade_date" , ascending=True)     
+
+    changer=b['pct_chg']
+
+    standard_show(changer)
+
+def standard_show(changer,first_base_income=100000,day_interval=2):
+    
+    start_from=first_base_income
+    show=[]
+    for curchange in changer:
+        start_from=start_from+(first_base_income/100/day_interval)*curchange
+        show.append(start_from)
+
+    #print(show)
+    len_show=len(show)
+    days=np.arange(1,len_show+1)
+
+    fig=plt.figure(figsize=(6,3))
+
+    plt.plot(days,show,c='red')
+
+    plt.show()
+
+
+
+    sfsfesfs=1
+
+def lgb_train_2(year):
+
+    readstring='ztrain'+year+'.csv'
+
+    #train=pd.read_csv(readstring,index_col=0,header=0,nrows=10000)
+    train=pd.read_csv(readstring,index_col=0,header=0)
+    train=train.reset_index(drop=True)
+    train2=train.copy(deep=True)
+
+
+    y_train = np.array(train['tomorrow_chg_rank'])
+    train.drop(['tomorrow_chg','tomorrow_chg_rank','ts_code','trade_date'],axis=1,inplace=True)
+
+
+    lgb_model = joblib.load('gbm.pkl')
+
+    dsadwd=lgb_model.feature_importances_
+
+    pred_test = lgb_model.predict_proba(train)
+
+    data1 = pd.DataFrame(pred_test)
+
+    data1['mix']=0
+    multlist=[-10,-3,-2,-1,0,0,1,2,3,10]
+
+    for i in range(10):
+        buffer=data1[i]*multlist[i]
+        data1['mix']=data1['mix']+buffer
+
+    train2=train2.join(data1)
+    
+    print(train2)
+    readstring='data'+year+'mixd.csv'
+    train2.to_csv(readstring)
+
+
+
+
 if __name__ == '__main__':
 
+    #get_allchange()
 
-    show_start()
 
-    get_codeanddate_feature()
+    #get_codeanddate_feature()
 
-    feature_env_codeanddate3('2019')
+    #feature_env_codeanddate3('2017')
 
-    lgb_train_2('2019')
+    #lgb_train_2('2017')
+
+    show_all_rate()
 
     end=1
 
