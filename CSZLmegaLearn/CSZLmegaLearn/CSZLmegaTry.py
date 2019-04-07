@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 import os
 import random
-import copy
 
 import tushare as ts
 
@@ -19,8 +18,8 @@ import datetime
 import time
 import random
 
-#自写的展示类
-from CSZLmegaDisplay import CSZLmegaDisplay
+##自写的展示类
+#from CSZLmegaDisplay import CSZLmegaDisplay
 import gc
 from sklearn.externals import joblib
 
@@ -44,12 +43,21 @@ def get_codeanddate_feature():
 
     pro = ts.pro_api(token)
 
-    date=pro.query('trade_cal', start_date='20190302', end_date='20190403')
+    nowTime=datetime.datetime.now()
+    delta = datetime.timedelta(days=23)
+    delta_one = datetime.timedelta(days=1)
+    month_ago = nowTime - delta
+    month_ago_next=month_ago+delta_one
+    month_fst=month_ago_next.strftime('%Y%m%d')  
+    month_sec=nowTime.strftime('%Y%m%d')  
+    month_thd=month_ago.strftime('%Y%m%d')      
+
+    date=pro.query('trade_cal', start_date=month_fst, end_date=month_sec)
 
     date=date[date["is_open"]==1]
     get_list=date["cal_date"]
 
-    df_all=pro.daily(trade_date="20190301")
+    df_all=pro.daily(trade_date=month_thd)
 
     zcounter=0
     zall=get_list.shape[0]
@@ -79,15 +87,6 @@ def get_codeanddate_feature():
 
     df_all=df_all.reset_index(drop=True)
 
-    ##读取token
-    #f = open('token.txt')
-    #token = f.read()     #将txt文件的所有内容读入到字符串str中
-    #f.close()
-
-    #pro = ts.pro_api(token)
-
-
-    #df_history=pro.daily(trade_date="20190403")
 
     df_all['ts_code']=df_all['ts_code'].map(lambda x : x[:-3])
     df_all.drop(['vol','change'],axis=1,inplace=True)
@@ -109,6 +108,7 @@ def real_get_change():
     bufferlist=[]
     df_real=[]
 
+    printcounter=0.0
     for curcode in codelist:
 
         curcode_str=str(curcode).zfill(6)
@@ -122,11 +122,11 @@ def real_get_change():
                 df_real=ts.get_realtime_quotes(bufferlist)
             bufferlist=[]            
             code_counter=0
-            print("continue")
-        fsfef=1
-        sleeptime=random.randint(50,99)
-        time.sleep(sleeptime/2000)
+            sleeptime=random.randint(50,99)
+            time.sleep(sleeptime/200)
+            print(printcounter/len(codelist))
 
+        printcounter+=1
 
     #df_real=ts.get_realtime_quotes(['600839','000980','000981'])
     #df_real2=ts.get_realtime_quotes(['000010','600000','600010'])
@@ -156,36 +156,10 @@ def real_get_change():
     df_real.to_csv("real_buffer.csv")
     df_real=pd.read_csv("real_buffer.csv",index_col=0,header=0)
     
-
-
-
-
-    #  属性:0：name，股票名字
-    #1：open，今日开盘价
-    #2：pre_close，昨日收盘价
-    #3：price，当前价格
-    #4：high，今日最高价
-    #5：low，今日最低价
-    #6：bid，竞买价，即“买一”报价
-    #7：ask，竞卖价，即“卖一”报价
-    #8：volumn，成交量 maybe you need do volumn/100
-    #9：amount，成交金额（元 CNY）
-    #10：b1_v，委买一（笔数 bid volume）
-    #11：b1_p，委买一（价格 bid price）
-    #12：b2_v，“买二”
-    #13：b2_p，“买二”
-    #14：b3_v，“买三”
-    #15：b3_p，“买三”
-    #16：b4_v，“买四”
-    #17：b4_p，“买四”
-    #18：b5_v，“买五”
-    #19：b5_p，“买五”
-    #20：a1_v，委卖一（笔数 ask volume）
-    #21：a1_p，委卖一（价格 ask price）
     
     cols = list(df_history)
 
-    df_history=df_history.append(df_real)
+    df_history=df_history.append(df_real,sort=False)
 
     df_history = df_history.ix[:, cols]
 
@@ -197,8 +171,7 @@ def real_get_change():
 
     dsfesf=1
 
-
-def real_predict():
+def real_FE():
 
     bufferstring='real_now.csv'
 
@@ -208,6 +181,10 @@ def real_predict():
     #df_all.drop(['change','vol'],axis=1,inplace=True)
     print(df_all)
 
+    #是否停
+    df_all['high_stop']=0
+    df_all.loc[df_all['pct_chg']>9,'high_stop']=1
+    df_all.loc[(df_all['pct_chg']<5.5) & (4.5<df_all['pct_chg']),'high_stop']=1
 
     df_all['price_real_rank']=df_all.groupby('trade_date')['pre_close'].rank(pct=True)
     df_all['price_real_rank']=df_all['price_real_rank']*10//1
@@ -265,15 +242,119 @@ def real_predict():
     print(df_all)
     df_all=df_all.reset_index(drop=True)
 
-    df_all.to_csv('ztrain'+year+'.csv')
+    df_all.to_csv('today_train.csv')
     dwdw=1
 
+def real_lgb_predict():
+    readstring='today_train.csv'
+
+    #train=pd.read_csv(readstring,index_col=0,header=0,nrows=10000)
+    train=pd.read_csv(readstring,index_col=0,header=0)
+    train=train.reset_index(drop=True)
+    train2=train.copy(deep=True)
+
+
+    train.drop(['ts_code','trade_date'],axis=1,inplace=True)
+
+
+    lgb_model = joblib.load('gbm.pkl')
+
+    dsadwd=lgb_model.feature_importances_
+
+    pred_test = lgb_model.predict_proba(train)
+
+    data1 = pd.DataFrame(pred_test)
+
+    data1['mix']=0
+    multlist=[-10,-3,-2,-1,0,0,1,2,3,10]
+
+    for i in range(10):
+        buffer=data1[i]*multlist[i]
+        data1['mix']=data1['mix']+buffer
+
+    train2=train2.join(data1)
+    
+    print(train2)
+    readstring='todaypredict.csv'
+    train2.to_csv(readstring)
+
+    dawd=1
+
+def show_change1():
+
+    show=pd.read_csv('todaypredict.csv',index_col=0,header=0)
+    #datamax=show['trade_date'].max()
+    datamax=20190403
+
+    show=show[show['trade_date']==datamax]
+
+    show=show[['ts_code','0','9','mix']]
+
+    #ascending表示升降序
+    b=show.sort_values(by="mix" , ascending=False) 
+    c=show.sort_values(by="9" , ascending=False) 
+    final_mix=b.head(20)
+    final_9=c.head(20)
+
+    pd.set_option('display.max_columns', None)
+    print('综合成绩')
+    print(final_mix)
+    print('极限成绩')
+    print(final_9)
+
+
+    fsfef=1
+
+def CSZL_TimeCheck():
+    global CurHour
+    global CurMinute
+
+
+
+    CurHour=int(time.strftime("%H", time.localtime()))
+    CurMinute=int(time.strftime("%M", time.localtime()))
+
+    caltemp=CurHour*100+CurMinute
+
+    #return True
+
+    if (caltemp>=1455 and caltemp<=1500):
+        return True
+    else:
+        return False  
 
 if __name__ == '__main__':
 
-    #get_codeanddate_feature()
+    cur_date=datetime.datetime.now().strftime("%Y-%m-%d")
 
-    real_get_change()
+    change_flag=0
+    while(True):
+        date=datetime.datetime.now()
+        day = date.weekday()
+        if(day>6):   
+            time.sleep(1000)
+            continue
+            dawd=5
+        if(cur_date!=date.strftime("%Y-%m-%d")):
+            change_flag=1
+            cur_date=date
+            #刚切到新的一天时候就下一下数据
+            get_codeanddate_feature()
+            time.sleep(10)            
 
+        if(change_flag==1):
 
-    real_predict()
+            if(CSZL_TimeCheck()):       
+
+                #这个可能可以循环取
+                real_get_change()
+
+                real_FE()
+
+                real_lgb_predict()
+
+                show_change1()
+                change_flag=0
+                time.sleep(10000) 
+        
+        time.sleep(10)

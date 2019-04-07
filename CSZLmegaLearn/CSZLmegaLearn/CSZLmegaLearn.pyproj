@@ -25,6 +25,9 @@
     <Compile Include="CSZLmegaAlgorithm .py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="CSZLmegaBack.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="CSZLmegaDisplay.py">
       <SubType>Code</SubType>
     </Compile>

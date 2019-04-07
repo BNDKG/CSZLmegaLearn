@@ -25,7 +25,7 @@ from CSZLmegaDisplay import CSZLmegaDisplay
 import gc
 from sklearn.externals import joblib
 
-
+import matplotlib.pyplot as plt
 #文件夹总路径
 cwd = os.getcwd()
 
@@ -570,7 +570,7 @@ def get_codeanddate_feature():
 
     pro = ts.pro_api(token)
 
-    date=pro.query('trade_cal', start_date='20190102', end_date='20190401')
+    date=pro.query('trade_cal', start_date='20190102', end_date='20190404')
 
     date=date[date["is_open"]==1]
     get_list=date["cal_date"]
@@ -1461,6 +1461,44 @@ def lgb_train_2(year):
 
     X_train,X_test,y_train,y_test=train_test_split(iris.data,iris.target,test_size=0.3)
 
+def show_start():
+    showsource=pd.read_csv('data2018mixd.csv',index_col=0,header=0)
+    databuffer=showsource['trade_date'].unique()
+
+    for curdata in databuffer:
+
+        cur_show=showsource[showsource["trade_date"]==curdata]
+
+        b=cur_show.sort_values(by="mix" , ascending=False) 
+
+        x_axis=range(len(b))
+        y_axis=b['tomorrow_chg']
+
+        show(x_axis,y_axis,title=curdata)
+
+        adwda=1
+
+
+def show(x_axis,y_axis,x_label="xlabel",y_label="ylabel ",title="title",x_tick="",y_tick="",colori="blue"):
+        plt.figure(figsize=(19, 11))
+        plt.scatter(x_axis, y_axis,s=8)
+        #plt.xlim(30, 160)
+        #plt.ylim(5, 50)
+        #plt.axis()
+    
+        plt.title(title,color=colori)
+        plt.xlabel("x_label")
+        plt.ylabel("y_label")
+
+        if(x_tick!=""or y_tick!=""):
+            plt.xticks(x_axis,x_tick)
+            plt.yticks(y_axis,y_tick)
+
+        #plt.pause(2)
+        plt.show()
+
+
+
 def get_date_feature():
 
     #获取基于日期的特征
@@ -1515,7 +1553,9 @@ if __name__ == '__main__':
     #Get_AllkData()
     #CSZL_CodelistToDatelist()
 
-    #get_codeanddate_feature()
+    show_start()
+
+    get_codeanddate_feature()
 
 
     #feature_env_codeanddate2()
