@@ -257,7 +257,7 @@ def real_lgb_predict():
     train.drop(['ts_code','trade_date'],axis=1,inplace=True)
 
 
-    lgb_model = joblib.load('gbm.pkl')
+    lgb_model = joblib.load('gbm3.pkl')
 
     dsadwd=lgb_model.feature_importances_
 
@@ -284,7 +284,7 @@ def show_change1():
 
     show=pd.read_csv('todaypredict.csv',index_col=0,header=0)
     #datamax=show['trade_date'].max()
-    datamax=20190403
+    datamax=20190408
 
     show=show[show['trade_date']==datamax]
 
@@ -323,7 +323,21 @@ def CSZL_TimeCheck():
     else:
         return False  
 
+def test_get():
+    get_codeanddate_feature()
+
+    real_get_change()
+
+    real_FE()
+
+    real_lgb_predict()
+
+    show_change1()
+
+
 if __name__ == '__main__':
+
+    test_get()
 
     cur_date=datetime.datetime.now().strftime("%Y-%m-%d")
 

@@ -950,10 +950,11 @@ def feature_env_codeanddate3(year):
     
 
     #明日幅度
-    tm1=df_all.groupby('ts_code')['pct_chg'].shift(-1)
-    tm2=df_all.groupby('ts_code')['pct_chg'].shift(-2)
-    tm3=df_all.groupby('ts_code')['pct_chg'].shift(-3)
-    df_all['tomorrow_chg']=((100+tm1)*(100+tm2)*(100+tm3)-1000000)/10000
+    #tm1=df_all.groupby('ts_code')['pct_chg'].shift(-1)
+    #tm2=df_all.groupby('ts_code')['pct_chg'].shift(-2)
+    #tm3=df_all.groupby('ts_code')['pct_chg'].shift(-3)
+    #df_all['tomorrow_chg']=((100+tm1)*(100+tm2)*(100+tm3)-1000000)/10000
+    df_all['tomorrow_chg']=df_all.groupby('ts_code')['pct_chg'].shift(-1)
 
     df_all['tomorrow_chg_rank']=df_all.groupby('trade_date')['tomorrow_chg'].rank(pct=True)
     df_all['tomorrow_chg_rank']=df_all['tomorrow_chg_rank']*9.9//1
@@ -970,12 +971,24 @@ def feature_env_codeanddate3(year):
     df_all['chg_rank']=df_all.groupby('trade_date')['pct_chg'].rank(pct=True)
     df_all['chg_rank']=df_all['chg_rank']*10//1
 
+
+
+    #10日
+    xxx=df_all.groupby('ts_code')['chg_rank'].rolling(10).sum().reset_index()
+    xxx.set_index(['level_1'], drop=True, append=False, inplace=True, verify_integrity=False)
+    xxx.drop(['ts_code'],axis=1,inplace=True)
+
+    df_all=df_all.join(xxx, lsuffix='', rsuffix='_10')
+
+    df_all['chg_rank_10']=df_all.groupby('trade_date')['chg_rank_10'].rank(pct=True)
+    df_all['chg_rank_10']=df_all['chg_rank_10']*10//1
+
     #3日
     xxx=df_all.groupby('ts_code')['chg_rank'].rolling(3).sum().reset_index()
     xxx.set_index(['level_1'], drop=True, append=False, inplace=True, verify_integrity=False)
     xxx.drop(['ts_code'],axis=1,inplace=True)
 
-    df_all=df_all.join(xxx, lsuffix='_1', rsuffix='_3')
+    df_all=df_all.join(xxx, lsuffix='', rsuffix='_3')
 
     df_all['chg_rank_3']=df_all.groupby('trade_date')['chg_rank_3'].rank(pct=True)
     df_all['chg_rank_3']=df_all['chg_rank_3']*10//1
@@ -1004,8 +1017,10 @@ def feature_env_codeanddate3(year):
         df_all[curc]=df_all.groupby('trade_date')[curc].rank(pct=True)
         df_all[curc]=df_all[curc]*10//1
 
-
-
+    #加入昨日三rank
+    df_all['yesterday_open']=df_all.groupby('ts_code')['open'].shift(1)
+    df_all['yesterday_high']=df_all.groupby('ts_code')['high'].shift(1)
+    df_all['yesterday_low']=df_all.groupby('ts_code')['low'].shift(1)
 
     df_all.drop(['close','pre_close','pct_chg','pst_amount'],axis=1,inplace=True)
     #暂时不用的列
@@ -1401,7 +1416,7 @@ def lgb_train_2(year):
     #multlist=[-12,-5,-3,-2,-1.5,-1,-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75,1,1.5,2,3,5,12]
     multlist=[-10,-3,-2,-1,0,0,1,2,3,10]
 
-    for i in range(20):
+    for i in range(10):
         buffer=data1[i]*multlist[i]
         data1['mix']=data1['mix']+buffer
 
@@ -1558,18 +1573,18 @@ if __name__ == '__main__':
     #Get_AllkData()
     #CSZL_CodelistToDatelist()
 
-    show_start()
+    #show_start()
 
     #get_codeanddate_feature()
 
 
     #feature_env_codeanddate2()
-    #feature_env_codeanddate3('2018')
+    feature_env_codeanddate3('2016')
 
 
     #feature_env_2('2018')
 
-    lgb_train_2('2018')
+    lgb_train_2('2016')
 
     #feature_env_codeanddate()
 
