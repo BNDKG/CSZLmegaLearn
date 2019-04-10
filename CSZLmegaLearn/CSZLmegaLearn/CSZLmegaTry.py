@@ -296,12 +296,16 @@ def show_change1():
     final_mix=b.head(20)
     final_9=c.head(20)
 
+    arr=[2404,603939,300215,2920,600795,600527]
+    final_have=show[show['ts_code'].isin(arr)]
+
     pd.set_option('display.max_columns', None)
     print('综合成绩')
     print(final_mix)
     print('极限成绩')
     print(final_9)
-
+    print('当前拥有')
+    print(final_have)
 
     fsfef=1
 
@@ -324,13 +328,13 @@ def CSZL_TimeCheck():
         return False  
 
 def test_get():
-    get_codeanddate_feature()
+    #get_codeanddate_feature()
 
-    real_get_change()
+    #real_get_change()
 
-    real_FE()
+    #real_FE()
 
-    real_lgb_predict()
+    #real_lgb_predict()
 
     show_change1()
 
