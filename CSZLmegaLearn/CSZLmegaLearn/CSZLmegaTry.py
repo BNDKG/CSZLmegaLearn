@@ -283,8 +283,8 @@ def real_lgb_predict():
 def show_change1():
 
     show=pd.read_csv('todaypredict.csv',index_col=0,header=0)
-    #datamax=show['trade_date'].max()
-    datamax=20190408
+    datamax=show['trade_date'].max()
+    #datamax=20190408
 
     show=show[show['trade_date']==datamax]
 

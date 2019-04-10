@@ -972,6 +972,15 @@ def feature_env_codeanddate3(year):
     df_all['chg_rank']=df_all['chg_rank']*10//1
 
 
+    #6日
+    xxx=df_all.groupby('ts_code')['chg_rank'].rolling(6).sum().reset_index()
+    xxx.set_index(['level_1'], drop=True, append=False, inplace=True, verify_integrity=False)
+    xxx.drop(['ts_code'],axis=1,inplace=True)
+
+    df_all=df_all.join(xxx, lsuffix='', rsuffix='_6')
+
+    df_all['chg_rank_6']=df_all.groupby('trade_date')['chg_rank_6'].rank(pct=True)
+    df_all['chg_rank_6']=df_all['chg_rank_6']*10//1
 
     #10日
     xxx=df_all.groupby('ts_code')['chg_rank'].rolling(10).sum().reset_index()
@@ -1017,10 +1026,13 @@ def feature_env_codeanddate3(year):
         df_all[curc]=df_all.groupby('trade_date')[curc].rank(pct=True)
         df_all[curc]=df_all[curc]*10//1
 
-    #加入昨日三rank
+    #加入昨日rank
     df_all['yesterday_open']=df_all.groupby('ts_code')['open'].shift(1)
     df_all['yesterday_high']=df_all.groupby('ts_code')['high'].shift(1)
     df_all['yesterday_low']=df_all.groupby('ts_code')['low'].shift(1)
+    df_all['yesterday_pst_amount_rank']=df_all.groupby('ts_code')['pst_amount_rank'].shift(1)
+    #加入前日open
+    df_all['yesterday2_open']=df_all.groupby('ts_code')['open'].shift(2)
 
     df_all.drop(['close','pre_close','pct_chg','pst_amount'],axis=1,inplace=True)
     #暂时不用的列
@@ -1038,7 +1050,40 @@ def feature_env_codeanddate3(year):
     df_all.to_csv('ztrain'+year+'.csv')
     dwdw=1
 
+def data_feature(year):
 
+    bufferstring='savetest'+year+'.csv'
+
+    df_all=pd.read_csv(bufferstring,index_col=0,header=0)    
+
+    xxx=pd.date_range('1/21/2018','2/19/2019')
+
+    df = pd.DataFrame(xxx)
+    df.columns = ['trade_date']
+    df['trade_date']=df['trade_date'].map(str).map(lambda x : x[:4]+x[5:7]+x[8:10]).astype("int64")
+
+    print(df)
+    yyy=df_all['trade_date']
+    zzz2=yyy.unique()
+    df_2=pd.DataFrame(zzz2)
+    df_2.columns = ['trade_date']
+    df_2['day_flag']=1
+    
+    result = pd.merge(df, df_2, how='left', on=['trade_date'])
+    result['day_flag2']=result['day_flag'].shift(-1)
+    result['gap_day']=0
+
+    result.loc[(result['day_flag']==1) & (result['day_flag2']!=1),'gap_day']=1
+
+    result.drop(['day_flag','day_flag2'],axis=1,inplace=True)
+
+    df_all=pd.merge(df_all, result, how='left', on=['trade_date'])
+
+    #print(df_all)
+
+    df_all.to_csv('datatest.csv')
+
+    dsfsef=1
 
 
 def feature_env_2_old():
@@ -1574,17 +1619,19 @@ if __name__ == '__main__':
     #CSZL_CodelistToDatelist()
 
     #show_start()
+    data_feature('2019')
+
 
     #get_codeanddate_feature()
 
 
     #feature_env_codeanddate2()
-    feature_env_codeanddate3('2016')
+    feature_env_codeanddate3('2018')
 
 
     #feature_env_2('2018')
 
-    lgb_train_2('2016')
+    lgb_train_2('2018')
 
     #feature_env_codeanddate()
 
