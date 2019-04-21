@@ -46,7 +46,7 @@ def show_start():
 
         adwda=1
 
-def show_all_rate():
+def show_all_rate(days):
     showsource=pd.read_csv('data2018mixd.csv',index_col=0,header=0)
     databuffer=showsource['trade_date'].unique()
 
@@ -57,15 +57,17 @@ def show_all_rate():
         b=cur_show.sort_values(by="mix" , ascending=False)
         #b=cur_show.sort_values(by="0" , ascending=True)
         #b=cur_show[cur_show['mix']>0.40]
-        average=b.head(1)['tomorrow_chg'].mean()
+        average=b.head(10)['tomorrow_chg'].mean()
         changer.append(average)
 
         adwda=1
 
 
-    standard_show(changer,day_interval=1)
+    days2,show=standard_show(changer,day_interval=1)
 
-    sdfsdfsf=1
+    return show
+
+
 
 
 def show(x_axis,y_axis,x_label="xlabel",y_label="ylabel ",title="title",x_tick="",y_tick="",colori="blue"):
@@ -232,15 +234,26 @@ def get_allchange():
 
     pro = ts.pro_api(token)
 
-    df = pro.index_daily(ts_code='000001.SH', start_date='20180101', end_date='20190404')
+    df = pro.index_daily(ts_code='000001.SH', start_date='20180117', end_date='20190404')
+    df2 = pro.index_daily(ts_code='399006.SZ', start_date='20180117', end_date='20190404')
     
     b=df.sort_values(by="trade_date" , ascending=True)     
+    b2=df2.sort_values(by="trade_date" , ascending=True)     
 
     changer=b['pct_chg']
+    changer2=b2['pct_chg']
 
-    standard_show(changer)
+    days,show=standard_show(changer,day_interval=1)
+    days2,show2=standard_show(changer2,day_interval=1)
 
-def standard_show(changer,first_base_income=100000,day_interval=2):
+    #standard_show(changer2,day_interval=1,label="自己2")
+
+
+
+    return days,show,show2
+    #plt.show()
+
+def standard_show(changer,first_base_income=100000,day_interval=2,label="自己"):
     
     start_from=first_base_income
     show=[]
@@ -254,13 +267,10 @@ def standard_show(changer,first_base_income=100000,day_interval=2):
 
     fig=plt.figure(figsize=(6,3))
 
-    plt.plot(days,show,c='red')
 
-    plt.show()
+    #plt.show()
 
-
-
-    sfsfesfs=1
+    return days,show
 
 def lgb_train_2(year):
 
@@ -302,7 +312,7 @@ def lgb_train_2(year):
 
 if __name__ == '__main__':
 
-    #get_allchange()
+    days,show1,show2=get_allchange()
 
 
     #get_codeanddate_feature()
@@ -311,7 +321,17 @@ if __name__ == '__main__':
 
     #lgb_train_2('2017')
 
-    show_all_rate()
+    show3=show_all_rate(days)
+
+    plt.plot(days,show1,c='blue',label="000001")
+    plt.plot(days,show2,c='red',label="399006")
+    plt.plot(days,show3,c='green',label="my model head10mean")
+
+    plt.legend()
+
+    plt.show()
+
+    sdfsdfsf=1
 
     end=1
 

@@ -26,6 +26,8 @@ import gc
 from sklearn.externals import joblib
 
 import matplotlib.pyplot as plt
+import seaborn as sns
+
 #文件夹总路径
 cwd = os.getcwd()
 
@@ -1444,32 +1446,38 @@ def lgb_train_2(year):
     train=train.reset_index(drop=True)
     train2=train.copy(deep=True)
 
+    
 
     y_train = np.array(train['tomorrow_chg_rank'])
     train.drop(['tomorrow_chg','tomorrow_chg_rank','ts_code','trade_date'],axis=1,inplace=True)
 
 
-    lgb_model = joblib.load('gbm.pkl')
+    corrmat = train.corr()
+    f, ax = plt.subplots(figsize=(12, 9))
+    sns.heatmap(corrmat, vmax=.8, square=True);
+    plt.show()
 
-    dsadwd=lgb_model.feature_importances_
+    #lgb_model = joblib.load('gbm.pkl')
 
-    pred_test = lgb_model.predict_proba(train)
+    #dsadwd=lgb_model.feature_importances_
 
-    data1 = pd.DataFrame(pred_test)
+    #pred_test = lgb_model.predict_proba(train)
 
-    data1['mix']=0
-    #multlist=[-12,-5,-3,-2,-1.5,-1,-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75,1,1.5,2,3,5,12]
-    multlist=[-10,-3,-2,-1,0,0,1,2,3,10]
+    #data1 = pd.DataFrame(pred_test)
 
-    for i in range(10):
-        buffer=data1[i]*multlist[i]
-        data1['mix']=data1['mix']+buffer
+    #data1['mix']=0
+    ##multlist=[-12,-5,-3,-2,-1.5,-1,-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75,1,1.5,2,3,5,12]
+    #multlist=[-10,-3,-2,-1,0,0,1,2,3,10]
 
-    train2=train2.join(data1)
+    #for i in range(10):
+    #    buffer=data1[i]*multlist[i]
+    #    data1['mix']=data1['mix']+buffer
+
+    #train2=train2.join(data1)
     
-    print(train2)
-    readstring='data'+year+'mixd.csv'
-    train2.to_csv(readstring)
+    #print(train2)
+    #readstring='data'+year+'mixd.csv'
+    #train2.to_csv(readstring)
 
 
 
@@ -1552,8 +1560,8 @@ def show(x_axis,y_axis,x_label="xlabel",y_label="ylabel ",title="title",x_tick="
         #plt.axis()
     
         plt.title(title,color=colori)
-        plt.xlabel("x_label")
-        plt.ylabel("y_label")
+        plt.xlabel("rank")
+        plt.ylabel("chg_pct")
 
         if(x_tick!=""or y_tick!=""):
             plt.xticks(x_axis,x_tick)
@@ -1619,19 +1627,20 @@ if __name__ == '__main__':
     #CSZL_CodelistToDatelist()
 
     #show_start()
-    data_feature('2019')
+    #日期特征
+    #data_feature('2019')
 
 
     #get_codeanddate_feature()
 
 
     #feature_env_codeanddate2()
-    feature_env_codeanddate3('2018')
+    #feature_env_codeanddate3('2010')
 
 
     #feature_env_2('2018')
 
-    lgb_train_2('2018')
+    lgb_train_2('2010')
 
     #feature_env_codeanddate()
 
