@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7e4ee6ef-a0c2-490f-9399-198518a0e028</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>CSZLmegaLearn.py</StartupFile>
+    <StartupFile>CSZLmegaBack.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -32,6 +32,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="CSZLmegaLearn.py" />
+    <Compile Include="CSZLmegaOverfit.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="CSZLmegaTry.py">
       <SubType>Code</SubType>
     </Compile>

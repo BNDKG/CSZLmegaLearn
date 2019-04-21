@@ -46,8 +46,8 @@ def show_start():
 
         adwda=1
 
-def show_all_rate(days):
-    showsource=pd.read_csv('data2018mixd.csv',index_col=0,header=0)
+def show_all_rate():
+    showsource=pd.read_csv('data2017mixd.csv',index_col=0,header=0)
     databuffer=showsource['trade_date'].unique()
 
     changer=[]
@@ -55,9 +55,13 @@ def show_all_rate(days):
 
         cur_show=showsource[showsource["trade_date"]==curdata]
         b=cur_show.sort_values(by="mix" , ascending=False)
-        #b=cur_show.sort_values(by="0" , ascending=True)
+        #b=cur_show.sort_values(by="9" , ascending=True)
+        #d=b.head(10)
+        #e=d.sort_values(by="mix" , ascending=True)
+        
+
         #b=cur_show[cur_show['mix']>0.40]
-        average=b.head(10)['tomorrow_chg'].mean()
+        average=b.head(1)['tomorrow_chg'].mean()
         changer.append(average)
 
         adwda=1
@@ -65,7 +69,7 @@ def show_all_rate(days):
 
     days2,show=standard_show(changer,day_interval=1)
 
-    return show
+    return days2,show
 
 
 
@@ -312,7 +316,7 @@ def lgb_train_2(year):
 
 if __name__ == '__main__':
 
-    days,show1,show2=get_allchange()
+    #days,show1,show2=get_allchange()
 
 
     #get_codeanddate_feature()
@@ -321,10 +325,10 @@ if __name__ == '__main__':
 
     #lgb_train_2('2017')
 
-    show3=show_all_rate(days)
+    days,show3=show_all_rate()
 
-    plt.plot(days,show1,c='blue',label="000001")
-    plt.plot(days,show2,c='red',label="399006")
+    #plt.plot(days,show1,c='blue',label="000001")
+    #plt.plot(days,show2,c='red',label="399006")
     plt.plot(days,show3,c='green',label="my model head10mean")
 
     plt.legend()
