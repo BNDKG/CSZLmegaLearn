@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7e4ee6ef-a0c2-490f-9399-198518a0e028</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>CSZLmegaBack.py</StartupFile>
+    <StartupFile>CSZLmegaOverfit.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>

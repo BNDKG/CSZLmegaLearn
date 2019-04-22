@@ -50,6 +50,7 @@ def feature_env_codeanddate3(year):
 
     df_all['tomorrow_chg_rank']=df_all.groupby('trade_date')['tomorrow_chg'].rank(pct=True)
     df_all['tomorrow_chg_rank']=df_all['tomorrow_chg_rank']*9.9//1
+
     #是否停
     df_all['high_stop']=0
     df_all.loc[df_all['pct_chg']>9,'high_stop']=1
@@ -136,7 +137,11 @@ def feature_env_codeanddate3(year):
 
     df_all.dropna(axis=0,how='any',inplace=True)
 
-    print(df_all)
+    #df_all[df_all['tomorrow_chg_rank']<9]['tomorrow_chg_rank']=0
+    #df_all[df_all['tomorrow_chg_rank']>8]['tomorrow_chg_rank']=1
+    df_all.loc[df_all['tomorrow_chg_rank']<9,'tomorrow_chg_rank']=0
+    df_all.loc[df_all['tomorrow_chg_rank']>8,'tomorrow_chg_rank']=1
+
     df_all=df_all.reset_index(drop=True)
 
     df_all.to_csv('ztrain'+year+'.csv')
@@ -170,13 +175,13 @@ def lgb_train_2(year):
 
     data1 = pd.DataFrame(pred_test)
 
-    data1['mix']=0
-    #multlist=[-12,-5,-3,-2,-1.5,-1,-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75,1,1.5,2,3,5,12]
-    multlist=[-10,-3,-2,-1,0,0,1,2,3,10]
+    #data1['mix']=0
+    ##multlist=[-12,-5,-3,-2,-1.5,-1,-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75,1,1.5,2,3,5,12]
+    #multlist=[-10,-3,-2,-1,0,0,1,2,3,10]
 
-    for i in range(10):
-        buffer=data1[i]*multlist[i]
-        data1['mix']=data1['mix']+buffer
+    #for i in range(10):
+    #    buffer=data1[i]*multlist[i]
+    #    data1['mix']=data1['mix']+buffer
 
     train2=train2.join(data1)
     
@@ -206,12 +211,11 @@ def lgb_train_2(year):
                                        learning_rate=0.05,
                                        num_leaves=2**8-1,
                                        colsample_bytree=0.6,
-                                       objective='multiclass', 
-                                       num_class=21,
+                                       objective='binary',                                        
                                        n_jobs=-1)
                                    
 
-        lgb_model.fit(X_fit, y_fit, eval_metric='multi_error',
+        lgb_model.fit(X_fit, y_fit, eval_metric='auc',
                       eval_set=[(X_val, y_val)], 
                       verbose=100, early_stopping_rounds=100)
         
@@ -240,14 +244,14 @@ def lgb_train_2(year):
     X_train,X_test,y_train,y_test=train_test_split(iris.data,iris.target,test_size=0.3)
 
 def show_start():
-    showsource=pd.read_csv('data2017mixd.csv',index_col=0,header=0)
+    showsource=pd.read_csv('data2019mixd.csv',index_col=0,header=0)
     databuffer=showsource['trade_date'].unique()
 
     for curdata in databuffer:
 
         cur_show=showsource[showsource["trade_date"]==curdata]
 
-        b=cur_show.sort_values(by="mix" , ascending=False) 
+        b=cur_show.sort_values(by="1" , ascending=False) 
 
         x_axis=range(len(b))
         y_axis=b['tomorrow_chg']
@@ -277,7 +281,7 @@ if __name__ == '__main__':
 
     show_start()
 
-    feature_env_codeanddate3('2017')
+    feature_env_codeanddate3('2019')
 
 
-    lgb_train_2('2017')
+    lgb_train_2('2019')

@@ -572,12 +572,12 @@ def get_codeanddate_feature():
 
     pro = ts.pro_api(token)
 
-    date=pro.query('trade_cal', start_date='20190102', end_date='20190404')
+    date=pro.query('trade_cal', start_date='20190302', end_date='20190420')
 
     date=date[date["is_open"]==1]
     get_list=date["cal_date"]
 
-    df_all=pro.daily(trade_date="20190101")
+    df_all=pro.daily(trade_date="20190301")
 
     zcounter=0
     zall=get_list.shape[0]
@@ -1631,7 +1631,7 @@ if __name__ == '__main__':
     #data_feature('2019')
 
 
-    #get_codeanddate_feature()
+    get_codeanddate_feature()
 
 
     #feature_env_codeanddate2()

@@ -296,7 +296,7 @@ def show_change1():
     final_mix=b.head(20)
     final_9=c.head(20)
 
-    arr=[300384,166,600287,2293]
+    arr=[600461,603389,300384]
     final_have=show[show['ts_code'].isin(arr)]
 
     pd.set_option('display.max_columns', None)
@@ -409,7 +409,7 @@ def real_FE2():
     dolist=['open','high','low']
 
     for curc in dolist:
-        buffer=((df_all[curc]-df_all['close'])*100)/df_all['close']
+        buffer=((df_all[curc]-df_all['pre_close'])*100)/df_all['pre_close']
         df_all[curc]=buffer
         df_all[curc]=df_all.groupby('trade_date')[curc].rank(pct=True)
         df_all[curc]=df_all[curc]*10//1
@@ -439,7 +439,7 @@ def real_FE2():
     dwdw=1
 
 def test_get():
-    get_codeanddate_feature()
+    #get_codeanddate_feature()
 
     real_get_change()
 

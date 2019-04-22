@@ -47,7 +47,7 @@ def show_start():
         adwda=1
 
 def show_all_rate():
-    showsource=pd.read_csv('data2017mixd.csv',index_col=0,header=0)
+    showsource=pd.read_csv('data2018mixd.csv',index_col=0,header=0)
     databuffer=showsource['trade_date'].unique()
 
     changer=[]
@@ -61,7 +61,7 @@ def show_all_rate():
         
 
         #b=cur_show[cur_show['mix']>0.40]
-        average=b.head(1)['tomorrow_chg'].mean()
+        average=b.head(10)['tomorrow_chg'].mean()
         changer.append(average)
 
         adwda=1
