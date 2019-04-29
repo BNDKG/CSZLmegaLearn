@@ -572,12 +572,12 @@ def get_codeanddate_feature():
 
     pro = ts.pro_api(token)
 
-    date=pro.query('trade_cal', start_date='20190302', end_date='20190420')
+    date=pro.query('trade_cal', start_date='20180102', end_date='20190423')
 
     date=date[date["is_open"]==1]
     get_list=date["cal_date"]
 
-    df_all=pro.daily(trade_date="20190301")
+    df_all=pro.daily(trade_date="20180101")
 
     zcounter=0
     zall=get_list.shape[0]
@@ -607,7 +607,7 @@ def get_codeanddate_feature():
 
     df_all=df_all.reset_index(drop=True)
 
-    df_all.to_csv("savetest2019.csv")
+    df_all.to_csv("savetest2020.csv")
 
 
 
@@ -1023,7 +1023,7 @@ def feature_env_codeanddate3(year):
     dolist=['open','high','low']
 
     for curc in dolist:
-        buffer=((df_all[curc]-df_all['close'])*100)/df_all['close']
+        buffer=((df_all[curc]-df_all['pre_close'])*100)/df_all['close']
         df_all[curc]=buffer
         df_all[curc]=df_all.groupby('trade_date')[curc].rank(pct=True)
         df_all[curc]=df_all[curc]*10//1
@@ -1457,27 +1457,27 @@ def lgb_train_2(year):
     sns.heatmap(corrmat, vmax=.8, square=True);
     plt.show()
 
-    #lgb_model = joblib.load('gbm.pkl')
+    lgb_model = joblib.load('gbm.pkl')
 
-    #dsadwd=lgb_model.feature_importances_
+    dsadwd=lgb_model.feature_importances_
 
-    #pred_test = lgb_model.predict_proba(train)
+    pred_test = lgb_model.predict_proba(train)
 
-    #data1 = pd.DataFrame(pred_test)
+    data1 = pd.DataFrame(pred_test)
 
-    #data1['mix']=0
-    ##multlist=[-12,-5,-3,-2,-1.5,-1,-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75,1,1.5,2,3,5,12]
-    #multlist=[-10,-3,-2,-1,0,0,1,2,3,10]
+    data1['mix']=0
+    #multlist=[-12,-5,-3,-2,-1.5,-1,-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75,1,1.5,2,3,5,12]
+    multlist=[-10,-3,-2,-1,0,0,1,2,3,10]
 
-    #for i in range(10):
-    #    buffer=data1[i]*multlist[i]
-    #    data1['mix']=data1['mix']+buffer
+    for i in range(10):
+        buffer=data1[i]*multlist[i]
+        data1['mix']=data1['mix']+buffer
 
-    #train2=train2.join(data1)
+    train2=train2.join(data1)
     
-    #print(train2)
-    #readstring='data'+year+'mixd.csv'
-    #train2.to_csv(readstring)
+    print(train2)
+    readstring='data'+year+'mixd.csv'
+    train2.to_csv(readstring)
 
 
 
@@ -1535,7 +1535,7 @@ def lgb_train_2(year):
     X_train,X_test,y_train,y_test=train_test_split(iris.data,iris.target,test_size=0.3)
 
 def show_start():
-    showsource=pd.read_csv('data2018mixd.csv',index_col=0,header=0)
+    showsource=pd.read_csv('data2020mixd.csv',index_col=0,header=0)
     databuffer=showsource['trade_date'].unique()
 
     for curdata in databuffer:
@@ -1626,21 +1626,21 @@ if __name__ == '__main__':
     #Get_AllkData()
     #CSZL_CodelistToDatelist()
 
-    #show_start()
+    show_start()
     #日期特征
     #data_feature('2019')
 
 
-    get_codeanddate_feature()
+    #get_codeanddate_feature()
 
 
     #feature_env_codeanddate2()
-    feature_env_codeanddate3('2010')
+    feature_env_codeanddate3('2020')
 
 
     #feature_env_2('2018')
 
-    lgb_train_2('2010')
+    lgb_train_2('2020')
 
     #feature_env_codeanddate()
 

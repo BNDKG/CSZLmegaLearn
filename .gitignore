@@ -334,3 +334,5 @@ ASALocalRun/
 /CSZLmegaLearn/CSZLmegaLearn/token.txt
 *.csv
 *.pkl
+/CSZLmegaLearn/CSZLmegaLearn/model_tmp
+/CSZLmegaLearn/CSZLmegaLearn/data

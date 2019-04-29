@@ -47,7 +47,7 @@ def show_start():
         adwda=1
 
 def show_all_rate():
-    showsource=pd.read_csv('data2018mixd.csv',index_col=0,header=0)
+    showsource=pd.read_csv('data2020mixd.csv',index_col=0,header=0)
     databuffer=showsource['trade_date'].unique()
 
     changer=[]

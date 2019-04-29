@@ -5,7 +5,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>7e4ee6ef-a0c2-490f-9399-198518a0e028</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>CSZLmegaOverfit.py</StartupFile>
+    <StartupFile>CSZLmegaTry.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -38,6 +38,24 @@
     <Compile Include="CSZLmegaTry.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="ctrNet.py" />
+    <Compile Include="misc_utils.py" />
+    <Compile Include="models\base_model.py" />
+    <Compile Include="models\ffm.py" />
+    <Compile Include="models\fm.py" />
+    <Compile Include="models\nffm.py" />
+    <Compile Include="models\xdeepfm.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="models\" />
+    <Folder Include="models\__pycache__\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="models\__pycache__\base_model.cpython-35.pyc" />
+    <Content Include="models\__pycache__\ffm.cpython-35.pyc" />
+    <Content Include="models\__pycache__\fm.cpython-35.pyc" />
+    <Content Include="models\__pycache__\nffm.cpython-35.pyc" />
+    <Content Include="models\__pycache__\xdeepfm.cpython-35.pyc" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

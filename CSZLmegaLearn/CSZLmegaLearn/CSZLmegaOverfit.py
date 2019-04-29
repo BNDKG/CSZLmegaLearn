@@ -28,6 +28,13 @@ from sklearn.externals import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+#import pandas as pd
+#import numpy as np
+import tensorflow as tf
+import ctrNet
+from sklearn.model_selection import train_test_split
+from src import misc_utils as utils
+
 #文件夹总路径
 cwd = os.getcwd()
 
@@ -134,13 +141,14 @@ def feature_env_codeanddate3(year):
     df_all.drop(['high_stop'],axis=1,inplace=True)
 
 
-
+    df_all['train_target']=0
     df_all.dropna(axis=0,how='any',inplace=True)
 
     #df_all[df_all['tomorrow_chg_rank']<9]['tomorrow_chg_rank']=0
     #df_all[df_all['tomorrow_chg_rank']>8]['tomorrow_chg_rank']=1
-    df_all.loc[df_all['tomorrow_chg_rank']<9,'tomorrow_chg_rank']=0
-    df_all.loc[df_all['tomorrow_chg_rank']>8,'tomorrow_chg_rank']=1
+    #df_all.loc[df_all['tomorrow_chg_rank']=0,'train_target']=1
+    df_all.loc[df_all['tomorrow_chg_rank']==0,'train_target']=1
+    #df_all.loc[df_all['tomorrow_chg_rank']>0,'tomorrow_chg_rank']=1
 
     df_all=df_all.reset_index(drop=True)
 
@@ -158,8 +166,8 @@ def lgb_train_2(year):
 
     
 
-    y_train = np.array(train['tomorrow_chg_rank'])
-    train.drop(['tomorrow_chg','tomorrow_chg_rank','ts_code','trade_date'],axis=1,inplace=True)
+    y_train = np.array(train['train_target'])
+    train.drop(['tomorrow_chg','tomorrow_chg_rank','train_target','ts_code','trade_date'],axis=1,inplace=True)
 
     #画数据的热力图
     #corrmat = train.corr()
@@ -167,27 +175,27 @@ def lgb_train_2(year):
     #sns.heatmap(corrmat, vmax=.8, square=True);
     #plt.show()
 
-    lgb_model = joblib.load('gbm.pkl')
+    #lgb_model = joblib.load('gbmlow.pkl')
 
-    dsadwd=lgb_model.feature_importances_
+    #dsadwd=lgb_model.feature_importances_
 
-    pred_test = lgb_model.predict_proba(train)
+    #pred_test = lgb_model.predict_proba(train)
 
-    data1 = pd.DataFrame(pred_test)
+    #data1 = pd.DataFrame(pred_test)
 
-    #data1['mix']=0
-    ##multlist=[-12,-5,-3,-2,-1.5,-1,-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75,1,1.5,2,3,5,12]
-    #multlist=[-10,-3,-2,-1,0,0,1,2,3,10]
+    ##data1['mix']=0
+    ###multlist=[-12,-5,-3,-2,-1.5,-1,-0.75,-0.5,-0.25,0,0,0.25,0.5,0.75,1,1.5,2,3,5,12]
+    ##multlist=[-10,-3,-2,-1,0,0,1,2,3,10]
 
-    #for i in range(10):
-    #    buffer=data1[i]*multlist[i]
-    #    data1['mix']=data1['mix']+buffer
+    ##for i in range(10):
+    ##    buffer=data1[i]*multlist[i]
+    ##    data1['mix']=data1['mix']+buffer
 
-    train2=train2.join(data1)
+    #train2=train2.join(data1)
     
-    print(train2)
-    readstring='data'+year+'mixd.csv'
-    train2.to_csv(readstring)
+    #print(train2)
+    #readstring='data'+year+'mixdlow.csv'
+    #train2.to_csv(readstring)
 
 
 
@@ -219,7 +227,7 @@ def lgb_train_2(year):
                       eval_set=[(X_val, y_val)], 
                       verbose=100, early_stopping_rounds=100)
         
-        joblib.dump(lgb_model,'gbm.pkl')
+        joblib.dump(lgb_model,'gbmlow.pkl')
 
 
         lgb_model = joblib.load('gbm.pkl')
@@ -243,8 +251,73 @@ def lgb_train_2(year):
 
     X_train,X_test,y_train,y_test=train_test_split(iris.data,iris.target,test_size=0.3)
 
+
+def fm_try(year):
+
+    readstring='ztrain'+year+'.csv'
+
+    #train=pd.read_csv(readstring,index_col=0,header=0,nrows=10000)
+    train=pd.read_csv(readstring,index_col=0,header=0)
+    train=train.reset_index(drop=True)
+    train2=train.copy(deep=True)
+
+    
+
+    #y_train = np.array(train['train_target'])
+    train.drop(['tomorrow_chg','tomorrow_chg_rank','ts_code','trade_date'],axis=1,inplace=True)
+
+    #画数据的热力图
+    #corrmat = train.corr()
+    #f, ax = plt.subplots(figsize=(12, 9))
+    #sns.heatmap(corrmat, vmax=.8, square=True);
+    #plt.show()
+    b=train.pop('train_target')
+    train.insert(0,'train_target',b)
+
+    print(train)
+
+    train.columns=['label']+['f'+str(i) for i in range(14)]
+    train_df, dev_df,_,_ = train_test_split(train,train,test_size=0.1, random_state=2019)
+    dev_df, test_df,_,_ = train_test_split(dev_df,dev_df,test_size=0.5, random_state=2019)
+    features=features=['f'+str(i) for i in range(14)]
+
+    #FFM
+    hparam=tf.contrib.training.HParams(
+                model='ffm', #['fm','ffm','nffm']
+                k=16,
+                hash_ids=int(1e5),
+                batch_size=512,
+                optimizer="adam", #['adadelta','adagrad','sgd','adam','ftrl','gd','padagrad','pgd','rmsprop']
+                learning_rate=0.002,
+                num_display_steps=100,
+                num_eval_steps=1000,
+                epoch=1,
+                metric='auc', #['auc','logloss']
+                init_method='uniform', #['tnormal','uniform','normal','xavier_normal','xavier_uniform','he_normal','he_uniform']
+                init_value=0.1,
+                feature_nums=len(features))
+    utils.print_hparams(hparam)
+    os.environ["CUDA_DEVICE_ORDER"]='PCI_BUS_ID'
+    os.environ["CUDA_VISIBLE_DEVICES"]='7'
+    model=ctrNet.build_model(hparam)
+    print("Testing FFM....")
+    model.train(train_data=(train_df[features],train_df['label']),\
+                dev_data=(dev_df[features],dev_df['label']))
+    from sklearn import metrics
+    preds=model.infer(dev_data=(test_df[features],test_df['label']))
+    fpr, tpr, thresholds = metrics.roc_curve(test_df['label']+1, preds, pos_label=2)
+    auc=metrics.auc(fpr, tpr)
+    print(auc)
+
+    print("FFM Done....")
+
+
+    sdadw=1
+
+
+
 def show_start():
-    showsource=pd.read_csv('data2019mixd.csv',index_col=0,header=0)
+    showsource=pd.read_csv('data2018mixdlow.csv',index_col=0,header=0)
     databuffer=showsource['trade_date'].unique()
 
     for curdata in databuffer:
@@ -279,9 +352,9 @@ def show(x_axis,y_axis,x_label="xlabel",y_label="ylabel ",title="title",x_tick="
         plt.show()
 if __name__ == '__main__':
 
-    show_start()
+    #show_start()
 
-    feature_env_codeanddate3('2019')
+    feature_env_codeanddate3('2018')
 
-
-    lgb_train_2('2019')
+    #fm_try('2018')
+    lgb_train_2('2018')

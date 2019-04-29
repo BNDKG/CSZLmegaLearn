@@ -123,7 +123,7 @@ def real_get_change():
             bufferlist=[]            
             code_counter=0
             sleeptime=random.randint(50,99)
-            time.sleep(sleeptime/200)
+            time.sleep(sleeptime/400)
             print(printcounter/len(codelist))
 
         printcounter+=1
